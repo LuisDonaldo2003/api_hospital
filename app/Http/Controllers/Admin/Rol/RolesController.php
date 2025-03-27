@@ -25,7 +25,7 @@ class RolesController extends Controller
                     "id" => $rol->id,
                     "name" => $rol->name,
                     "permissions" => $rol->permissions,
-                    "permission_pluck" => $rol->permissions->pluck("name"),
+                    "permission_pluck" => $rol->permissions->pluck("name"), // Asegurar que se incluya este campo
                     "created_at" => $rol->created_at->format("Y-m-d h:i:s")
                 ];
             }),
@@ -106,8 +106,13 @@ class RolesController extends Controller
             'name' => $request->name
         ]);
 
-        // Sincronizar permisos
-        $role->syncPermissions($request->permissions ?? []);
+        // Sincronizar permisos solo si se envían en la solicitud
+        if ($request->has('permissions')) {
+            $role->syncPermissions($request->permissions);
+        }
+
+        // Recargar los permisos actualizados
+        $role->load('permissions');
 
         return response()->json([
             "message" => 200,
@@ -115,10 +120,13 @@ class RolesController extends Controller
             "role" => [
                 "id" => $role->id,
                 "name" => $role->name,
-                "permissions" => $role->permissions->pluck("name")
+                "permissions" => $role->permissions,
+                "permission_pluck" => $role->permissions->pluck("name"), // Asegurar que se incluyan los permisos actualizados
+                "created_at" => $role->created_at->format("Y-m-d h:i:s")
             ]
         ], 200);
     }
+
 
     /**
      * Remove the specified resource from storage.

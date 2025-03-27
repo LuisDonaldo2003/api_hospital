@@ -1,17 +1,17 @@
 <?php
- 
+
 namespace App\Http\Controllers;
- 
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Importar el trait necesario
 use App\Models\User;
 use Validator;
- 
+
 class AuthController extends Controller
 {
     use AuthorizesRequests; // Usar el trait para habilitar el método authorize()
-    
+
     /**
      * Create a new AuthController instance.
      *
@@ -21,8 +21,8 @@ class AuthController extends Controller
     {
         $this->middleware('auth:api', ['except' => ['login','register']]);
     }
- 
- 
+
+
     /**
      * Register a User.
      *
@@ -35,20 +35,20 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8',
         ]);
- 
+
         if($validator->fails()){
             return response()->json($validator->errors()->toJson(), 400);
         }
- 
+
         $user = new User;
         $user->name = request()->name;
         $user->email = request()->email;
         $user->password = bcrypt(request()->password);
         $user->save();
- 
+
         return response()->json($user, 201);
     }
-    
+
     public function reg() {
 
         $this->authorize('create',User::class);
@@ -58,20 +58,20 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8',
         ]);
- 
+
         if($validator->fails()){
             return response()->json($validator->errors()->toJson(), 400);
         }
- 
+
         $user = new User;
         $user->name = request()->name;
         $user->email = request()->email;
         $user->password = bcrypt(request()->password);
         $user->save();
- 
+
         return response()->json($user, 201);
     }
- 
+
     /**
      * Get a JWT via given credentials.
      *
@@ -84,10 +84,10 @@ class AuthController extends Controller
         if (! $token = auth('api')->attempt($credentials)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
- 
+
         return $this->respondWithToken($token);
     }
- 
+
     /**
      * Get the authenticated User.
      *
@@ -97,7 +97,7 @@ class AuthController extends Controller
     {
         return response()->json(auth('api')->user());
     }
-    
+
     function list() {
         $users = User::all();
         return response()->json([
@@ -112,10 +112,10 @@ class AuthController extends Controller
     public function logout()
     {
         auth()->logout();
- 
+
         return response()->json(['message' => 'Successfully logged out']);
     }
- 
+
     /**
      * Refresh a token.
      *
@@ -125,7 +125,7 @@ class AuthController extends Controller
     {
         return $this->respondWithToken(auth()->refresh());
     }
- 
+
     /**
      * Get the token array structure.
      *
