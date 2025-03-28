@@ -6,20 +6,20 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class PermissionsDemoSeeder extends Seeder
 {
     /**
      * Create the initial roles and permissions.
-     *
-     * @return void
      */
     public function run()
     {
         // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-            // create permissions
+        // --- PERMISOS ---
         Permission::create(['guard_name' => 'api','name' => 'admin_dashboard']);
         Permission::create(['guard_name' => 'api','name' => 'doctor_dashboard']);
 
@@ -72,38 +72,48 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'calendar']);
 
 
-        // create roles and assign existing permissions
-        // $role1 = Role::create(['guard_name' => 'api','name' => 'writer']);
-        // $role1->givePermissionTo('edit articles');
-        // $role1->givePermissionTo('delete articles');
+        // --- ROLES Y USUARIOS ---
 
-        // $role2 = Role::create(['guard_name' => 'api','name' => 'admin']);
-        // $role2->givePermissionTo('publish articles');
-        // $role2->givePermissionTo('unpublish articles');
+        // Super-Admin (con acceso total)
+        $roleSuperAdmin = Role::create(['guard_name' => 'api','name' => 'Super-Admin']);
 
-        $role3 = Role::create(['guard_name' => 'api','name' => 'Super-Admin']);
-        // gets all permissions via Gate::before rule; see AuthServiceProvider
-
-        // create demo users
-        // $user = \App\Models\User::factory()->create([
-        //     'name' => 'Example User',
-        //     'email' => 'test@example.com',
-        //     'password' => bcrypt('12345678')
-        // ]);
-        // $user->assignRole($role1);
-
-        // $user = \App\Models\User::factory()->create([
-        //     'name' => 'Example Admin User',
-        //     'email' => 'admin@example.com',
-        //     'password' => bcrypt('12345678')
-        // ]);
-        // $user->assignRole($role2);
-
-        $user = \App\Models\User::factory()->create([
+        $userSuper = User::factory()->create([
             'name' => 'Super-Admin User',
             'email' => 'monsterpark1000@gmail.com',
             'password' => bcrypt('Marimar97')
         ]);
-        $user->assignRole($role3);
+        $userSuper->assignRole($roleSuperAdmin);
+
+        // Doctor con permisos específicos
+        $roleDoctor = Role::create(['guard_name' => 'api','name' => 'Doctor']);
+
+        $doctorPermissions = [
+            'list_doctor',
+            'edit_doctor',
+            'profile_doctor',
+            'register_patient',
+            'list_patient',
+            'edit_patient',
+            'delete_patient',
+            'profile_patient',
+            'register_appointment',
+            'list_appointment',
+            'edit_appointment',
+            'delete_appointment',
+            'attention_appointment',
+            'calendar',
+        ];
+
+        $roleDoctor->syncPermissions($doctorPermissions);
+
+        $userDoctor = User::updateOrCreate(
+            ['email' => 'doctor@gmail.com'],
+            [
+                'name' => 'Doctor User',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDoctor->assignRole($roleDoctor);
     }
 }
