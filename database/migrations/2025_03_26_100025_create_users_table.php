@@ -13,20 +13,35 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 255);
-            $table->string('surname', 250)->nullable();
-            $table->string('email', 255)->unique();
+
+            $table->string('name');
+            $table->string('surname')->nullable();
+            $table->string('email')->unique();
+            $table->string('password')->nullable();
+            $table->string('mobile')->nullable();
+            $table->date('birth_date')->nullable();
+            $table->tinyInteger('gender')->nullable(); // 1=Hombre, 2=Mujer
+
+            // Nuevos campos
+            $table->string('profile')->nullable(); // perfil textual
+            $table->string('curp', 18)->nullable();
+            $table->string('ine', 18)->nullable();
+            $table->string('rfc', 13)->nullable();
+            $table->string('attendance_number', 20)->nullable();
+            $table->string('professional_license', 20)->nullable();
+            $table->string('funcion_real')->nullable(); // antes llamado 'function'
+
+            // Claves foráneas
             $table->foreignId('specialitie_id')->nullable()->constrained('specialities')->nullOnDelete();
-            $table->string('mobile', 50)->nullable();
-            $table->timestamp('birth_date')->nullable();
-            $table->unsignedTinyInteger('gender')->default(1)->comment('1 es masculino y 2 es femenino');
-            $table->longText('education')->nullable();
-            $table->longText('designation')->nullable();
-            $table->string('address', 250)->nullable();
-            $table->string('avatar', 250)->nullable();
+            $table->foreignId('profile_id')->nullable()->constrained('profiles')->nullOnDelete();
+            $table->foreignId('contract_type_id')->nullable()->constrained('contract_types')->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->index(); // usado por algunas relaciones en Laravel
+
+            $table->string('avatar')->nullable();
+
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
             $table->rememberToken();
+
             $table->timestamps();
             $table->softDeletes();
         });

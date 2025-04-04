@@ -3,147 +3,145 @@
 namespace App\Http\Controllers\Admin\Staff;
 
 use Carbon\Carbon;
+use App\Models\User;
+use App\Models\Profile;
+use App\Models\Specialitie;
+use App\Models\ContractType;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserCollection;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\User\UserResource;
-use App\Http\Resources\User\UserCollection;
-use App\Models\User;
 
 class StaffsController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
-    {
-        $search = $request->search;
-        $users = User::where("name", "like", "%".$search."%")
-            ->orWhere("surname", "like", "%".$search."%")
-            ->orWhere("email", "like", "%".$search."%")
-            ->orderBy("id", "desc")
-            ->get();
+        {
+            $search = $request->search;
+            $users = User::where("name", "like", "%".$search."%")
+                ->orWhere("surname", "like", "%".$search."%")
+                ->orWhere("email", "like", "%".$search."%")
+                ->orderBy("id", "desc")
+                ->get();
 
-        return response()->json([
-            "users" => UserCollection::make($users),
-        ]);
-    }
+            return response()->json([
+                "users" => UserResource::collection($users),
+            ]);
+        }
 
     public function config()
     {
         $roles = Role::all();
+        $specialities = Specialitie::select("id", "name")->get();
+        $profiles = Profile::select("id", "name")->get();
+        $contractTypes = ContractType::select("id", "name")->get();
+
         return response()->json([
             "roles" => $roles,
+            "specialities" => $specialities,
+            "profiles" => $profiles,
+            "contract_types" => $contractTypes,
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-
         $request->validate([
-            'imagen' => 'required|image|mimes:jpg,jpeg,png|max:2048', // Máx 2MB
+            'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'email' => 'required|email',
+            'name' => 'required|string|max:255',
+            'role_id' => 'required|exists:roles,id',
+            'surname' => 'nullable|string|max:255',
+            'mobile' => 'nullable|string|max:15',
+            'birth_date' => 'nullable|date',
+            'gender' => 'nullable|string|max:10',
+            'curp' => 'nullable|string|max:18',
+            'ine' => 'nullable|string|max:18',
+            'rfc' => 'nullable|string|max:13',
+            'attendance_number' => 'nullable|string|max:20',
+            'professional_license' => 'nullable|string|max:20',
+            'funcion_real' => 'nullable|string|max:255',
+            'specialitie_id' => 'nullable|integer|exists:specialities,id',
+            'profile_id' => 'nullable|integer|exists:profiles,id',
+            'contract_type_id' => 'nullable|integer|exists:contract_types,id',
         ]);
 
-        $users_is_valid = User::where("email", $request->email)->first();
-
-        if ($users_is_valid) {
+        if (User::where("email", $request->email)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "El Usuario con este email ya existe"
             ]);
         }
 
-        // Crear un array con los datos validados
-        $data = [
-            'name' => $request->name,
-            'surname' => $request->surname,
-            'email' => $request->email,
-            'mobile' => $request->mobile,
-            'birth_date' => $request->birth_date,
-            'gender' => $request->gender,
-            'education' => $request->education,
-            'designation' => $request->designation,
-            'address' => $request->address,
-        ];
+        $data = $request->only([
+            'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
+            'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
+            'funcion_real', 'specialitie_id', 'profile_id', 'contract_type_id'
+        ]);
 
         if ($request->hasFile("imagen")) {
-            $path = $request->file('imagen')->store('staffs', 'public');
-            $data["avatar"] = $path;
-
+            $data["avatar"] = $request->file('imagen')->store('staffs', 'public');
         }
 
         if ($request->password) {
             $data["password"] = bcrypt($request->password);
         }
 
-        // Cambio de "birth" a "birth_date"
-        if ($request->has('birth_date')) {
-            $data['birth_date'] = $request->birth_date;
-        }
-
         $user = User::create($data);
-        $role = Role::findOrFail($request->role_id);
-        $user->assignRole($role);
+        $user->assignRole(Role::findOrFail($request->role_id));
 
         return response()->json([
             "message" => 200,
             "message_text" => "Usuario creado correctamente",
             "user" => new UserResource($user)
         ]);
-
     }
-    /**
-     * Update the specified resource in storage.
-     */
 
+    public function show($id)
+    {
+        $user = User::with('roles')->find($id);
 
-     public function show($id)
-     {
-         $user = User::with('roles')->find($id);
+        if (!$user) {
+            return response()->json([
+                "message" => 404,
+                "message_text" => "Usuario no encontrado"
+            ], 404);
+        }
 
-         if (!$user) {
-             return response()->json([
-                 "message" => 404,
-                 "message_text" => "Usuario no encontrado"
-             ], 404);
-         }
+        $user->avatar = $user->avatar ? asset('storage/' . $user->avatar) : null;
 
-         // Verificar si el usuario tiene un avatar almacenado y generar la URL completa
-         $user->avatar = $user->avatar ? asset('storage/' . $user->avatar) : null;
-
-         return response()->json([
-             "user" => $user
-         ]);
-     }
+        return response()->json([
+            "user" => $user
+        ]);
+    }
 
     public function update(Request $request, string $id)
     {
-        $users_is_valid = User::where("id","<>", $id)->where("email",$request->email)->first();
+        $user = User::findOrFail($id);
 
-        if($users_is_valid){
+        if (User::where("id", "<>", $id)->where("email", $request->email)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "El Usuario con este email ya existe"
             ]);
         }
 
-        $user = User::findOrFail($id);
+        $data = $request->only([
+            'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
+            'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
+            'funcion_real', 'specialitie_id', 'profile_id', 'contract_type_id'
+        ]);
 
         if ($request->hasFile("imagen")) {
             if ($user->avatar) {
-                Storage::delete('public/' . $user->avatar); // Asegurar eliminación correcta
+                Storage::delete('public/' . $user->avatar);
             }
-            $path = $request->file('imagen')->store('staffs', 'public'); // Guardar en public/storage
-            $user->avatar = $path; // Asignar al usuario
+            $data["avatar"] = $request->file('imagen')->store('staffs', 'public');
         }
 
-
-        if($request->password){
-            $request->merge(["password" => bcrypt($request->password)]);
+        if ($request->password) {
+            $data["password"] = bcrypt($request->password);
         }
 
         if ($request->has('birth_date')) {
@@ -154,32 +152,24 @@ class StaffsController extends Controller
             }
         }
 
-        $user->update($request->all());
+        $user->update($data);
 
-
-        if($request->role_id != $user->roles()->first()->id){
-            $role_old = Role::findOrFail($user->roles()->first()->id);
-            $user->removeRole($role_old);
-            $role_new = Role::findOrFail($request->role_id);
-            $user->assignRole($role_new);
-
+        if ($request->role_id && $request->role_id != $user->roles()->first()->id) {
+            $user->syncRoles([Role::findOrFail($request->role_id)]);
         }
 
         return response()->json([
             "message" => 200,
-            "message_text" => "Usuario creado correctamente",
-            "user" => $user
+            "message_text" => "Usuario actualizado correctamente",
+            "user" => new UserResource($user)
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
-        if($user->avatar){
-            Storage::delete($user->avatar);
+        if ($user->avatar) {
+            Storage::delete('public/' . $user->avatar);
         }
         $user->delete();
         return response()->json([

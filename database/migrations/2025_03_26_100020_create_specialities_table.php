@@ -7,14 +7,16 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
-        Schema::create('specialities', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->timestamps();
-            $table->softDeletes();
-        });
-    }
+{
+    Schema::create('specialities', function (Blueprint $table) {
+        $table->id();
+        $table->string('name', 250);
+        $table->tinyInteger('state')->default(1); // ✅ AÑADE ESTA LÍNEA
+        $table->timestamps();
+        $table->softDeletes();
+    });
+}
+
 
     public function down(): void
     {
