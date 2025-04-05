@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin\Specialitie;
 
 use Illuminate\Http\Request;
-use App\Models\Models\Specialitie;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Specialitie;
 
 
 class SpecialityController extends Controller
