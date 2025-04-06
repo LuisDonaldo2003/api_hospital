@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin\Staff;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Profile;
-use App\Models\Specialitie;
+use App\Models\Departaments;
 use App\Models\ContractType;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
@@ -17,29 +17,29 @@ use App\Http\Resources\User\UserResource;
 class StaffsController extends Controller
 {
     public function index(Request $request)
-        {
-            $search = $request->search;
-            $users = User::where("name", "like", "%".$search."%")
-                ->orWhere("surname", "like", "%".$search."%")
-                ->orWhere("email", "like", "%".$search."%")
-                ->orderBy("id", "desc")
-                ->get();
+    {
+        $search = $request->search;
+        $users = User::where("name", "like", "%".$search."%")
+            ->orWhere("surname", "like", "%".$search."%")
+            ->orWhere("email", "like", "%".$search."%")
+            ->orderBy("id", "desc")
+            ->get();
 
-            return response()->json([
-                "users" => UserResource::collection($users),
-            ]);
-        }
+        return response()->json([
+            "users" => UserResource::collection($users),
+        ]);
+    }
 
     public function config()
     {
         $roles = Role::all();
-        $specialities = Specialitie::select("id", "name")->get();
+        $departaments = Departaments::select("id", "name")->get();
         $profiles = Profile::select("id", "name")->get();
         $contractTypes = ContractType::select("id", "name")->get();
 
         return response()->json([
             "roles" => $roles,
-            "specialities" => $specialities,
+            "departaments" => $departaments,
             "profiles" => $profiles,
             "contract_types" => $contractTypes,
         ]);
@@ -62,7 +62,7 @@ class StaffsController extends Controller
             'attendance_number' => 'nullable|string|max:20',
             'professional_license' => 'nullable|string|max:20',
             'funcion_real' => 'nullable|string|max:255',
-            'specialitie_id' => 'nullable|integer|exists:specialities,id',
+            'departament_id' => 'nullable|integer|exists:departaments,id',
             'profile_id' => 'nullable|integer|exists:profiles,id',
             'contract_type_id' => 'nullable|integer|exists:contract_types,id',
         ]);
@@ -77,7 +77,7 @@ class StaffsController extends Controller
         $data = $request->only([
             'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
             'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
-            'funcion_real', 'specialitie_id', 'profile_id', 'contract_type_id'
+            'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
         ]);
 
         if ($request->hasFile("imagen")) {
@@ -130,7 +130,7 @@ class StaffsController extends Controller
         $data = $request->only([
             'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
             'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
-            'funcion_real', 'specialitie_id', 'profile_id', 'contract_type_id'
+            'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
         ]);
 
         if ($request->hasFile("imagen")) {
