@@ -32,7 +32,7 @@ return new class extends Migration
             $table->string('funcion_real')->nullable(); // antes llamado 'function'
 
             // Claves foráneas
-            $table->foreignId('specialitie_id')->nullable()->constrained('specialities')->nullOnDelete();
+            $table->foreignId('departament_id')->nullable()->constrained('departaments')->nullOnDelete();
             $table->foreignId('profile_id')->nullable()->constrained('profiles')->nullOnDelete();
             $table->foreignId('contract_type_id')->nullable()->constrained('contract_types')->nullOnDelete();
             $table->foreignId('user_id')->nullable()->index(); // usado por algunas relaciones en Laravel

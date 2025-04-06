@@ -1,11 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\Departament\DepartamentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\Rol\RolesController;
 use App\Http\Controllers\Admin\Staff\StaffsController;
-use App\Http\Controllers\Admin\Specialitie\SpecialityController;
 
 
 
@@ -38,5 +38,5 @@ Route::group([
     Route::post("staffs/{id}",[StaffsController::class,"update"]);
     Route::resource("staffs",StaffsController::class);
     //
-    Route::resource("specialities",SpecialityController::class);
+    Route::resource("departaments",DepartamentController::class);
 });

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
 {
-    Schema::create('specialities', function (Blueprint $table) {
+    Schema::create('departaments', function (Blueprint $table) {
         $table->id();
         $table->string('name', 250);
         $table->tinyInteger('state')->default(1); // ✅ AÑADE ESTA LÍNEA
@@ -20,6 +20,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('specialities');
+        Schema::dropIfExists('departaments');
     }
 };

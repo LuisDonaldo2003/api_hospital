@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('doctor_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
             $table->timestamp('date_appointment')->nullable();
-            $table->foreignId('specialitie_id')->constrained('specialities')->onDelete('cascade');
+            $table->foreignId('departament_id')->constrained('departaments')->onDelete('cascade');
             $table->foreignId('doctor_schedule_join_hour_id')->constrained('doctor_schedule_join_hours')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->double('amount');
