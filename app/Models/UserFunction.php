@@ -2,17 +2,34 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class UserFunction extends Model
 {
+    use HasFactory;
     use SoftDeletes;
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'state',
+    ];
 
-    protected $fillable = ['name', 'state'];
+    public function setCreatedAtAttribute($value)
+    {
+    	date_default_timezone_set('America/Mexico_City');
+        $this->attributes["created_at"]= Carbon::now();
+    }
 
-    // Relaciones futuras (si usuarios están relacionados)
-    // public function users() {
-    //     return $this->hasMany(User::class);
-    // }
+    public function setUpdatedAtAttribute($value)
+    {
+    	date_default_timezone_set('America/Mexico_City');
+        $this->attributes["updated_at"]= Carbon::now();
+    }
 }
