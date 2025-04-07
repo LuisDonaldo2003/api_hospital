@@ -1,22 +1,22 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Departament;
+namespace App\Http\Controllers\Admin\ContractTypes;
 
-use App\Http\Controllers\Controller;
-use App\Models\Departaments;
+use App\Models\ContractType;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
-class DepartamentController extends Controller
+class ContractController extends Controller
 {
     public function index(Request $request)
     {
         // QUE EL FILTRO POR NOMBRE DE ROL
         $name = $request->search;
 
-        $departaments = Departaments::where("name","like","%".$name."%")->orderBy("id","desc")->get();
+        $contracts = ContractType::where("name","like","%".$name."%")->orderBy("id","desc")->get();
 
         return response()->json([
-            "departaments" => $departaments->map(function($rol) {
+            "contracts" => $contracts->map(function($rol) {
                 return [
                     "id" => $rol->id,
                     "name" => $rol->name,
@@ -32,16 +32,16 @@ class DepartamentController extends Controller
      */
     public function store(Request $request)
     {
-        $is_departaments = Departaments::where("name",$request->name)->first();
+        $is_contracts = ContractType::where("name",$request->name)->first();
 
-        if($is_departaments){
+        if($is_contracts){
             return response()->json([
                 "message" => 403,
-                "message_text" => "EL NOMBRE DEL DEPARTAMENTO YA EXISTE"
+                "message_text" => "EL NOMBRE DEL CONTRATO YA EXISTE"
             ]);
         }
 
-        $departaments = Departaments::create($request->all());
+        $contracts = ContractType::create($request->all());
 
         return response()->json([
             "message" => 200,
@@ -53,11 +53,11 @@ class DepartamentController extends Controller
      */
     public function show(string $id)
     {
-        $departaments = Departaments::findOrFail($id);
+        $contracts = ContractType::findOrFail($id);
         return response()->json([
-            "id" => $departaments->id,
-            "name" => $departaments->name,
-            "state" => $departaments->state
+            "id" => $contracts->id,
+            "name" => $contracts->name,
+            "state" => $contracts->state
         ]);
     }
 
@@ -66,17 +66,17 @@ class DepartamentController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $is_departaments = Departaments::where("id","<>",$id)->where("name",$request->name)->first();
+        $is_contracts = ContractType::where("id","<>",$id)->where("name",$request->name)->first();
 
-        if($is_departaments){
+        if($is_contracts){
             return response()->json([
                 "message" => 403,
-                "message_text" => "EL NOMBRE DEL DEPARTAMENTO YA EXISTE"
+                "message_text" => "EL NOMBRE DEL CONTRATO YA EXISTE"
             ]);
         }
 
-        $departaments = Departaments::findOrFail($id);
-        $departaments->update($request->all());
+        $contracts = ContractType::findOrFail($id);
+        $contracts->update($request->all());
         return response()->json([
             "message" => 200,
         ]);
@@ -87,8 +87,8 @@ class DepartamentController extends Controller
      */
     public function destroy(string $id)
     {
-        $departaments = Departaments::findOrFail($id);
-        $departaments->delete();
+        $contracts = ContractType::findOrFail($id);
+        $contracts->delete();
         return response()->json([
             "message" => 200,
         ]);

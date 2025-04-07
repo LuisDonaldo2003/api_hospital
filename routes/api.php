@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\Admin\Departament\DepartamentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\Rol\RolesController;
 use App\Http\Controllers\Admin\Staff\StaffsController;
+use App\Http\Controllers\Admin\ContractTypes\ContractController;
+use App\Http\Controllers\Admin\Departament\DepartamentController;
 
 
 
@@ -39,4 +40,7 @@ Route::group([
     Route::resource("staffs",StaffsController::class);
     //
     Route::resource("departaments",DepartamentController::class);
+    //
+    Route::resource("contracts",ContractController::class);
+
 });
