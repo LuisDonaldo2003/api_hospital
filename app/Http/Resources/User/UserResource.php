@@ -31,7 +31,7 @@ class UserResource extends JsonResource
             "funcion_real"          => $this->funcion_real,
 
             // Relaciones con nombre
-            "speciality"            => optional($this->speciality)->name,
+            "departament"           => optional($this->departament)->name,
             "profile_relation"      => optional($this->profileRelation)->name,
             "contract_type"         => optional($this->contractType)->name,
         ];

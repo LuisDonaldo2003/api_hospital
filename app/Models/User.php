@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Profile;
-use App\Models\Specialitie;
 use App\Models\ContractType;
+use App\Models\Departaments;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -38,8 +38,8 @@ class User extends Authenticatable implements JWTSubject
         'rfc',
         'attendance_number',
         'professional_license',
-        'funcion_real', // CORREGIDO aquí
-        'specialitie_id',
+        'funcion_real',
+        'departament_id',
         'profile_id',
         'contract_type_id',
     ];
@@ -69,10 +69,10 @@ class User extends Authenticatable implements JWTSubject
 
     // Relaciones
 
-    public function speciality()
-    {
-        return $this->belongsTo(Specialitie::class, 'specialitie_id');
-    }
+    public function departament()
+        {
+            return $this->belongsTo(Departaments::class, 'departament_id');
+        }
 
 
     public function profileRelation()

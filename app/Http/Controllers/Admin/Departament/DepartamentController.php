@@ -37,7 +37,7 @@ class DepartamentController extends Controller
         if($is_departaments){
             return response()->json([
                 "message" => 403,
-                "message_text" => "EL NOMBRE DE LA ESPECIALIDAD YA EXISTE"
+                "message_text" => "EL NOMBRE DEL DEPARTAMENTO YA EXISTE"
             ]);
         }
 
@@ -71,7 +71,7 @@ class DepartamentController extends Controller
         if($is_departaments){
             return response()->json([
                 "message" => 403,
-                "message_text" => "EL NOMBRE DE LA ESPECIALIDAD YA EXISTE"
+                "message_text" => "EL NOMBRE DEL DEPARTAMENTO YA EXISTE"
             ]);
         }
 
