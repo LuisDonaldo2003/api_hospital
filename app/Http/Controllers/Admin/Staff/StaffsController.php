@@ -17,18 +17,25 @@ use App\Http\Resources\User\UserResource;
 class StaffsController extends Controller
 {
     public function index(Request $request)
-    {
-        $search = $request->search;
-        $users = User::where("name", "like", "%".$search."%")
-            ->orWhere("surname", "like", "%".$search."%")
-            ->orWhere("email", "like", "%".$search."%")
-            ->orderBy("id", "desc")
-            ->get();
+{
+    $query = User::query();
 
-        return response()->json([
-            "users" => UserResource::collection($users),
-        ]);
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where("name", "like", "%".$search."%")
+              ->orWhere("surname", "like", "%".$search."%")
+              ->orWhere("email", "like", "%".$search."%");
+        });
     }
+
+    $users = $query->orderBy("id", "desc")->get();
+
+    return response()->json([
+        "users" => UserResource::collection($users),
+    ]);
+}
+
 
     public function config()
     {
