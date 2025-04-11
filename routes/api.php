@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\Admin\Rol\RolesController;
 use App\Http\Controllers\Admin\Staff\StaffsController;
 use App\Http\Controllers\Admin\Profile\ProfileController;
@@ -53,4 +54,7 @@ Route::group([
 
     //Profile
     Route::resource("profile",ProfileController::class);
+
+    Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
+
 });

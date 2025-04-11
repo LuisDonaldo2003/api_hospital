@@ -29,17 +29,30 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'edit_rol']);
         Permission::create(['guard_name' => 'api','name' => 'delete_rol']);
 
-        // Staff
+        // Users
         Permission::create(['guard_name' => 'api','name' => 'register_staff']);
         Permission::create(['guard_name' => 'api','name' => 'list_staff']);
         Permission::create(['guard_name' => 'api','name' => 'edit_staff']);
         Permission::create(['guard_name' => 'api','name' => 'delete_staff']);
 
-        // Especialidades
-        Permission::create(['guard_name' => 'api','name' => 'register_specialty']);
-        Permission::create(['guard_name' => 'api','name' => 'list_specialty']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_specialty']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_specialty']);
+
+        //Contracts
+        Permission::create(['guard_name' => 'api','name' => 'add_contract']);
+        Permission::create(['guard_name' => 'api','name' => 'list_contract']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_contract']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_contract']);
+
+        //Profile
+        Permission::create(['guard_name' => 'api','name' => 'add_profile-m']);
+        Permission::create(['guard_name' => 'api','name' => 'list_profile-m']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_profile-m']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_profile-m']);
+
+        // Departament
+        Permission::create(['guard_name' => 'api','name' => 'add_departament']);
+        Permission::create(['guard_name' => 'api','name' => 'list_departament']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_departament']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_departament']);
 
         // Doctores
         Permission::create(['guard_name' => 'api','name' => 'register_doctor']);
