@@ -11,21 +11,13 @@ use App\Http\Controllers\Admin\Profile\ProfileController;
 use App\Http\Controllers\Admin\ContractTypes\ContractController;
 use App\Http\Controllers\Admin\Departament\DepartamentController;
 
-
-
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-
 Route::group([
-
-    // 'middleware' => 'auth:api',
     'prefix' => 'auth',
-    // 'middleware' => ['role:admin','permission:publish articles'],
 ], function ($router) {
-
-    //Login
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -35,52 +27,27 @@ Route::group([
     Route::post('/reg', [AuthController::class, 'reg']);
 });
 
-Route::post('/verify-code', function (Request $request) {
-    $request->validate([
-        'email' => 'required|email',
-        'code' => 'required|string|size:8'
-    ]);
-
-    $user = User::where('email', $request->email)
-        ->where('email_verification_code', strtoupper($request->code))
-        ->first();
-
-    if (!$user) {
-        return response()->json([
-            'message' => 'Código de verificación inválido.'
-        ], 400);
-    }
-
-    $user->email_verified_at = now();
-    $user->email_verification_code = null;
-    $user->save();
-
-    return response()->json([
-        'message' => 'Correo verificado correctamente.'
-    ]);
-});
+// ✅ Verificación con login automático
+Route::post('/verify-code', [AuthController::class, 'verifyCode']);
 
 Route::group([
     'middleware' => 'auth:api',
 ], function ($router) {
-
     //Roles
-    Route::resource("roles",RolesController::class);
+    Route::resource("roles", RolesController::class);
 
     //Staffs
-    Route::get("staffs/config",[StaffsController::class,"config"]);
-    Route::post("staffs/{id}",[StaffsController::class,"update"]);
-    Route::resource("staffs",StaffsController::class);
+    Route::get("staffs/config", [StaffsController::class, "config"]);
+    Route::post("staffs/{id}", [StaffsController::class, "update"]);
+    Route::resource("staffs", StaffsController::class);
 
     //Departaments
-    Route::resource("departaments",DepartamentController::class);
+    Route::resource("departaments", DepartamentController::class);
 
     //Contracts
-    Route::resource("contracts",ContractController::class);
+    Route::resource("contracts", ContractController::class);
 
     //Profile
-    Route::resource("profile",ProfileController::class);
-
+    Route::resource("profile", ProfileController::class);
     Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
-
 });

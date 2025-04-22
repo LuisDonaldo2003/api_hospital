@@ -7,39 +7,29 @@ use Mail;
 use Validator;
 use App\Models\User;
 use App\Mail\VerificationCodeMail;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Importar el trait necesario
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class AuthController extends Controller
 {
-    use AuthorizesRequests; // Usar el trait para habilitar el método authorize()
+    use AuthorizesRequests;
 
-    /**
-     * Create a new AuthController instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login','register']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyCode']]);
     }
 
-
-    /**
-     * Register a User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function register() {
-
+    public function register()
+    {
         $validator = Validator::make(request()->all(), [
             'name' => 'required',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json($validator->errors()->toJson(), 400);
         }
 
@@ -52,9 +42,9 @@ class AuthController extends Controller
         return response()->json($user, 201);
     }
 
-    public function reg() {
-
-        $this->authorize('create',User::class);
+    public function reg()
+    {
+        $this->authorize('create', User::class);
 
         $validator = Validator::make(request()->all(), [
             'name' => 'required',
@@ -62,7 +52,7 @@ class AuthController extends Controller
             'password' => 'required|min:8',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json($validator->errors()->toJson(), 400);
         }
 
@@ -75,68 +65,54 @@ class AuthController extends Controller
         return response()->json($user, 201);
     }
 
-    /**
-     * Get a JWT via given credentials.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function login()
-        {
-            $credentials = request(['email', 'password']);
+    {
+        $credentials = request(['email', 'password']);
 
-            if (! $token = auth('api')->attempt($credentials)) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-
-            $user = auth('api')->user();
-
-            if (is_null($user->email_verified_at)) {
-                $expired = true;
-
-                if ($user->email_code_sent_at) {
-                    $expired = now()->diffInMinutes($user->email_code_sent_at) >= 5;
-                }
-
-                if ($expired) {
-                    $user->email_verification_code = strtoupper(Str::random(8));
-                    $user->email_code_sent_at = now();
-                    $user->save();
-
-                    Mail::to($user->email)->send(new VerificationCodeMail($user));
-                }
-
-                return response()->json([
-                    'message' => 'Correo no verificado. Se ha enviado un nuevo código de verificación.',
-                    'status' => 403,
-                    'unverified' => true
-                ], 403);
-            }
-
-            return $this->respondWithToken($token);
+        if (! $token = auth('api')->attempt($credentials)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        $user = auth('api')->user();
 
-    /**
-     * Get the authenticated User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+        if (is_null($user->email_verified_at)) {
+            $expired = true;
+
+            if ($user->email_code_sent_at) {
+                $expired = now()->diffInMinutes($user->email_code_sent_at) >= 5;
+            }
+
+            if ($expired) {
+                $user->email_verification_code = strtoupper(Str::random(8));
+                $user->email_code_sent_at = now();
+                $user->save();
+
+                Mail::to($user->email)->send(new VerificationCodeMail($user));
+            }
+
+            return response()->json([
+                'message' => 'Correo no verificado. Se ha enviado un nuevo código de verificación.',
+                'status' => 403,
+                'unverified' => true
+            ], 403);
+        }
+
+        return $this->respondWithToken($token);
+    }
+
     public function me()
     {
         return response()->json(auth('api')->user());
     }
 
-    function list() {
+    public function list()
+    {
         $users = User::all();
         return response()->json([
             "users" => $users,
         ]);
     }
-    /**
-     * Log the user out (Invalidate the token).
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+
     public function logout()
     {
         auth()->logout();
@@ -144,30 +120,17 @@ class AuthController extends Controller
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    /**
-     * Refresh a token.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function refresh()
     {
         return $this->respondWithToken(auth()->refresh());
     }
 
-
-
-    /**
-     * Get the token array structure.
-     *
-     * @param  string $token
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     protected function respondWithToken($token)
     {
-        $permissions = auth("api")->user()->getAllPermissions()->map(function($perm) {
+        $permissions = auth("api")->user()->getAllPermissions()->map(function ($perm) {
             return $perm->name;
         });
+
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
@@ -175,11 +138,36 @@ class AuthController extends Controller
             "user" => [
                 "name" => auth('api')->user()->name,
                 "surname" => auth('api')->user()->surname,
-                // "avatar" => auth('api')->user()->avartar,
-                "email"=> auth('api')->user()->email,
+                "email" => auth('api')->user()->email,
                 "roles" => auth('api')->user()->getRoleNames(),
                 "permissions" => $permissions,
             ],
         ]);
+    }
+
+    // ✅ Nuevo método: Verificación con login automático
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|string|size:8'
+        ]);
+
+        $user = User::where('email', $request->email)
+            ->where('email_verification_code', strtoupper($request->code))
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'Código de verificación inválido.'
+            ], 400);
+        }
+
+        $user->email_verified_at = now();
+        $user->email_verification_code = null;
+        $user->save();
+
+        $token = auth('api')->login($user);
+        return $this->respondWithToken($token);
     }
 }
