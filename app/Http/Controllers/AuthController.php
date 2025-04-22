@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Routing\Controller;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Importar el trait necesario
-use App\Models\User;
+use Str;
+use Mail;
 use Validator;
+use App\Models\User;
+use App\Mail\VerificationCodeMail;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Importar el trait necesario
 
 class AuthController extends Controller
 {
@@ -78,15 +81,40 @@ class AuthController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function login()
-    {
-        $credentials = request(['email', 'password']);
+        {
+            $credentials = request(['email', 'password']);
 
-        if (! $token = auth('api')->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            if (! $token = auth('api')->attempt($credentials)) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $user = auth('api')->user();
+
+            if (is_null($user->email_verified_at)) {
+                $expired = true;
+
+                if ($user->email_code_sent_at) {
+                    $expired = now()->diffInMinutes($user->email_code_sent_at) >= 5;
+                }
+
+                if ($expired) {
+                    $user->email_verification_code = strtoupper(Str::random(8));
+                    $user->email_code_sent_at = now();
+                    $user->save();
+
+                    Mail::to($user->email)->send(new VerificationCodeMail($user));
+                }
+
+                return response()->json([
+                    'message' => 'Correo no verificado. Se ha enviado un nuevo código de verificación.',
+                    'status' => 403,
+                    'unverified' => true
+                ], 403);
+            }
+
+            return $this->respondWithToken($token);
         }
 
-        return $this->respondWithToken($token);
-    }
 
     /**
      * Get the authenticated User.
@@ -125,6 +153,8 @@ class AuthController extends Controller
     {
         return $this->respondWithToken(auth()->refresh());
     }
+
+
 
     /**
      * Get the token array structure.

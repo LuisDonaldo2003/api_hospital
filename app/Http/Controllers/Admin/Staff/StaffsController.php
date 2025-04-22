@@ -5,15 +5,17 @@ namespace App\Http\Controllers\Admin\Staff;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Profile;
-use App\Models\Departaments;
 use App\Models\ContractType;
+use App\Models\Departaments;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Mail;
 use App\Http\Resources\UserCollection;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\User\UserResource;
-
+use Illuminate\Support\Str;
+use App\Mail\VerificationCodeMail;
 class StaffsController extends Controller
 {
     public function index(Request $request)
@@ -53,57 +55,61 @@ class StaffsController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'email' => 'required|email',
-            'name' => 'required|string|max:255',
-            'role_id' => 'required|exists:roles,id',
-            'surname' => 'nullable|string|max:255',
-            'mobile' => 'nullable|string|max:15',
-            'birth_date' => 'nullable|date',
-            'gender' => 'nullable|string|max:10',
-            'curp' => 'nullable|string|max:18',
-            'ine' => 'nullable|string|max:18',
-            'rfc' => 'nullable|string|max:13',
-            'attendance_number' => 'nullable|string|max:20',
-            'professional_license' => 'nullable|string|max:20',
-            'funcion_real' => 'nullable|string|max:255',
-            'departament_id' => 'nullable|integer|exists:departaments,id',
-            'profile_id' => 'nullable|integer|exists:profiles,id',
-            'contract_type_id' => 'nullable|integer|exists:contract_types,id',
-        ]);
+{
+    $request->validate([
+        'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'email' => 'required|email',
+        'name' => 'required|string|max:255',
+        'role_id' => 'required|exists:roles,id',
+        'surname' => 'nullable|string|max:255',
+        'mobile' => 'nullable|string|max:15',
+        'birth_date' => 'nullable|date',
+        'gender' => 'nullable|string|max:10',
+        'curp' => 'nullable|string|max:18',
+        'ine' => 'nullable|string|max:18',
+        'rfc' => 'nullable|string|max:13',
+        'attendance_number' => 'nullable|string|max:20',
+        'professional_license' => 'nullable|string|max:20',
+        'funcion_real' => 'nullable|string|max:255',
+        'departament_id' => 'nullable|integer|exists:departaments,id',
+        'profile_id' => 'nullable|integer|exists:profiles,id',
+        'contract_type_id' => 'nullable|integer|exists:contract_types,id',
+    ]);
 
-        if (User::where("email", $request->email)->exists()) {
-            return response()->json([
-                "message" => 403,
-                "message_text" => "El Usuario con este email ya existe"
-            ]);
-        }
-
-        $data = $request->only([
-            'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
-            'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
-            'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
-        ]);
-
-        if ($request->hasFile("imagen")) {
-            $data["avatar"] = $request->file('imagen')->store('staffs', 'public');
-        }
-
-        if ($request->password) {
-            $data["password"] = bcrypt($request->password);
-        }
-
-        $user = User::create($data);
-        $user->assignRole(Role::findOrFail($request->role_id));
-
+    if (User::where("email", $request->email)->exists()) {
         return response()->json([
-            "message" => 200,
-            "message_text" => "Usuario creado correctamente",
-            "user" => new UserResource($user)
+            "message" => 403,
+            "message_text" => "El Usuario con este email ya existe"
         ]);
     }
+
+    $data = $request->only([
+        'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
+        'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
+        'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
+    ]);
+
+    // Generar código aleatorio de 8 caracteres
+    $data['email_verification_code'] = Str::upper(Str::random(8));
+
+
+    if ($request->hasFile("imagen")) {
+        $data["avatar"] = $request->file('imagen')->store('staffs', 'public');
+    }
+
+    if ($request->password) {
+        $data["password"] = bcrypt($request->password);
+    }
+
+    $user = User::create($data);
+    $user->assignRole(Role::findOrFail($request->role_id));
+
+    return response()->json([
+        "message" => 200,
+        "message_text" => "Usuario creado correctamente. Se envió un código de verificación al correo.",
+        "user" => new UserResource($user)
+    ]);
+}
 
     public function show($id)
     {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -32,6 +33,31 @@ Route::group([
     Route::post('/me', [AuthController::class, 'me'])->name('me');
     Route::post('/list', [AuthController::class, 'list']);
     Route::post('/reg', [AuthController::class, 'reg']);
+});
+
+Route::post('/verify-code', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+        'code' => 'required|string|size:8'
+    ]);
+
+    $user = User::where('email', $request->email)
+        ->where('email_verification_code', strtoupper($request->code))
+        ->first();
+
+    if (!$user) {
+        return response()->json([
+            'message' => 'Código de verificación inválido.'
+        ], 400);
+    }
+
+    $user->email_verified_at = now();
+    $user->email_verification_code = null;
+    $user->save();
+
+    return response()->json([
+        'message' => 'Correo verificado correctamente.'
+    ]);
 });
 
 Route::group([
