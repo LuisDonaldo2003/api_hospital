@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileAvatarController;
@@ -29,6 +31,26 @@ Route::group([
 
 // ✅ Verificación con login automático
 Route::post('/verify-code', [AuthController::class, 'verifyCode']);
+
+Route::post('/resend-code', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user) {
+        return response()->json(['message' => 'Usuario no encontrado.'], 404);
+    }
+
+    $user->email_verification_code = strtoupper(Str::random(8));
+    $user->email_code_sent_at = now();
+    $user->save();
+
+    Mail::to($user->email)->send(new \App\Mail\VerificationCodeMail($user));
+
+    return response()->json(['message' => 'Código reenviado con éxito.']);
+});
 
 Route::group([
     'middleware' => 'auth:api',
