@@ -44,6 +44,8 @@ class User extends Authenticatable implements JWTSubject
         'contract_type_id',
         'email_verified_at',
         'email_verification_code',
+        'recovery_code',
+        'recovery_code_expires_at',
     ];
 
     /**

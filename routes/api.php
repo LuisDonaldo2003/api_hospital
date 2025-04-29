@@ -5,6 +5,9 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Hash;
+use App\Mail\VerificationCodeMail;
+use App\Mail\RecoveryCodeMail;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\Admin\Rol\RolesController;
@@ -29,16 +32,13 @@ Route::group([
     Route::post('/reg', [AuthController::class, 'reg']);
 });
 
-// ✅ Verificación con login automático
+// ✅ Verificación de cuenta
 Route::post('/verify-code', [AuthController::class, 'verifyCode']);
 
 Route::post('/resend-code', function (Request $request) {
-    $request->validate([
-        'email' => 'required|email',
-    ]);
+    $request->validate(['email' => 'required|email']);
 
     $user = User::where('email', $request->email)->first();
-
     if (!$user) {
         return response()->json(['message' => 'Usuario no encontrado.'], 404);
     }
@@ -47,29 +47,34 @@ Route::post('/resend-code', function (Request $request) {
     $user->email_code_sent_at = now();
     $user->save();
 
-    Mail::to($user->email)->send(new \App\Mail\VerificationCodeMail($user));
+    Mail::to($user->email)->send(new VerificationCodeMail($user));
 
     return response()->json(['message' => 'Código reenviado con éxito.']);
 });
 
+// 🔐 Recuperación de contraseña (usando métodos del AuthController)
+Route::post('/forgot-password/send-code', [AuthController::class, 'sendRecoveryCode']);
+Route::post('/forgot-password/verify-code', [AuthController::class, 'verifyRecoveryCode']);
+Route::post('/forgot-password/reset', [AuthController::class, 'resetPassword']);
+
 Route::group([
     'middleware' => 'auth:api',
 ], function ($router) {
-    //Roles
+    // Roles
     Route::resource("roles", RolesController::class);
 
-    //Staffs
+    // Staffs
     Route::get("staffs/config", [StaffsController::class, "config"]);
     Route::post("staffs/{id}", [StaffsController::class, "update"]);
     Route::resource("staffs", StaffsController::class);
 
-    //Departaments
+    // Departaments
     Route::resource("departaments", DepartamentController::class);
 
-    //Contracts
+    // Contracts
     Route::resource("contracts", ContractController::class);
 
-    //Profile
+    // Profile
     Route::resource("profile", ProfileController::class);
     Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
 });

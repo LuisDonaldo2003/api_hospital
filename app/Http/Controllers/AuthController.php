@@ -18,7 +18,7 @@ class AuthController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyCode']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyCode','sendRecoveryCode', 'verifyRecoveryCode', 'resetPassword']]);
     }
 
     public function register()
@@ -170,4 +170,64 @@ class AuthController extends Controller
         $token = auth('api')->login($user);
         return $this->respondWithToken($token);
     }
+
+
+        // 📩 Enviar código de recuperación
+    public function sendRecoveryCode(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no encontrado.'], 404);
+        }
+
+        $code = rand(10000000, 99999999);
+        $user->recovery_code = $code;
+        $user->recovery_code_expires_at = now()->addMinutes(5);
+        $user->save();
+
+        Mail::to($user->email)->send(new \App\Mail\RecoveryCodeMail($user));
+
+        return response()->json(['message' => 'Código de recuperación enviado al correo.']);
+    }
+
+    // 🔍 Verificar código de recuperación
+    public function verifyRecoveryCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (! $user || $user->recovery_code !== $request->code || now()->greaterThan($user->recovery_code_expires_at)) {
+            return response()->json(['message' => 'Código incorrecto o expirado.'], 400);
+        }
+
+        return response()->json(['message' => 'Código válido.', 'token' => $user->recovery_code]);
+    }
+
+    // 🔒 Restablecer contraseña
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no encontrado.'], 404);
+        }
+
+        $user->password = \Hash::make($request->password);
+        $user->recovery_code = null;
+        $user->recovery_code_expires_at = null;
+        $user->save();
+
+        return response()->json(['message' => 'Contraseña actualizada correctamente.']);
+    }
+
 }
