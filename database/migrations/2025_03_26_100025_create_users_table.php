@@ -23,7 +23,7 @@ return new class extends Migration
             $table->tinyInteger('gender')->nullable(); // 1=Hombre, 2=Mujer
 
             // Nuevos campos
-            $table->string('profile')->nullable(); // perfil textual
+            // $table->string('profile')->nullable(); // perfil textual
             $table->string('curp', 18)->nullable();
             $table->string('ine', 18)->nullable();
             $table->string('rfc', 13)->nullable();

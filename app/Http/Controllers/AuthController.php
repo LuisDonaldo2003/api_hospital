@@ -127,7 +127,9 @@ class AuthController extends Controller
 
     protected function respondWithToken($token)
     {
-        $permissions = auth("api")->user()->getAllPermissions()->map(function ($perm) {
+        $user = auth('api')->user();
+
+        $permissions = $user->getAllPermissions()->map(function ($perm) {
             return $perm->name;
         });
 
@@ -135,16 +137,17 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
-            "user" => [
-                "name" => auth('api')->user()->name,
-                "surname" => auth('api')->user()->surname,
-                "email" => auth('api')->user()->email,
-                "roles" => auth('api')->user()->getRoleNames(),
-                "permissions" => $permissions,
+            'user' => [
+                'name' => $user->name,
+                'surname' => $user->surname,
+                'email' => $user->email,
+                'roles' => $user->getRoleNames(),
+                'permissions' => $permissions,
             ],
+            'is_profile_complete' => $user->isProfileComplete(), // ← ✅ Añadido
         ]);
     }
-
+ 
     // ✅ Nuevo método: Verificación con login automático
     public function verifyCode(Request $request)
     {

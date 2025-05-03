@@ -178,6 +178,51 @@ class StaffsController extends Controller
         ]);
     }
 
+
+    public function completeProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'mobile' => 'required|string|max:15',
+            'birth_date' => 'required|date',
+            'gender' => 'required|string|max:10',
+            'curp' => 'required|string|max:18',
+            'ine' => 'required|string|max:18',
+            'rfc' => 'required|string|max:13',
+            'attendance_number' => 'required|string|max:20',
+            'professional_license' => 'required|string|max:20',
+            'funcion_real' => 'required|string|max:255',
+            'departament_id' => 'required|integer|exists:departaments,id',
+            'profile_id' => 'required|integer|exists:profiles,id',
+            'contract_type_id' => 'required|integer|exists:contract_types,id',
+        ]);
+
+        $data = $request->only([
+            'mobile', 'birth_date', 'gender', 'curp', 'ine', 'rfc',
+            'attendance_number', 'professional_license', 'funcion_real',
+            'departament_id', 'profile_id', 'contract_type_id'
+        ]);
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar) {
+                \Storage::delete('public/' . $user->avatar);
+            }
+            $data['avatar'] = $request->file('avatar')->store('staffs', 'public');
+        }
+
+        $user->update($data);
+
+        
+
+        return response()->json([
+            "message" => "Perfil completado exitosamente.",
+            "user" => new UserResource($user)
+        ]);
+    }
+
+
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);

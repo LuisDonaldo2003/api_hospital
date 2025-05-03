@@ -68,6 +68,9 @@ Route::group([
     Route::post("staffs/{id}", [StaffsController::class, "update"]);
     Route::resource("staffs", StaffsController::class);
 
+    //Complete-user
+    Route::middleware('auth:api')->post('/complete-profile', [StaffsController::class, 'completeProfile']);
+
     // Departaments
     Route::resource("departaments", DepartamentController::class);
 

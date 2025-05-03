@@ -16,11 +16,6 @@ class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable, HasRoles, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'surname',
@@ -48,21 +43,11 @@ class User extends Authenticatable implements JWTSubject
         'recovery_code_expires_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -72,12 +57,10 @@ class User extends Authenticatable implements JWTSubject
     }
 
     // Relaciones
-
     public function departament()
-        {
-            return $this->belongsTo(Departaments::class, 'departament_id');
-        }
-
+    {
+        return $this->belongsTo(Departaments::class, 'departament_id');
+    }
 
     public function profileRelation()
     {
@@ -98,5 +81,22 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    // ✅ Nuevo método: comprobar si el perfil está completo
+    public function isProfileComplete(): bool
+    {
+        return $this->mobile &&
+               $this->birth_date &&
+               $this->gender &&
+               $this->curp &&
+               $this->rfc &&
+               $this->ine &&
+               $this->attendance_number &&
+               $this->professional_license &&
+               $this->funcion_real &&
+               $this->departament_id &&
+               $this->profile_id &&
+               $this->contract_type_id;
     }
 }
