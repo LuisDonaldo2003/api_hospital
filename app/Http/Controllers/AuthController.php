@@ -147,7 +147,6 @@ class AuthController extends Controller
             'is_profile_complete' => $user->isProfileComplete(), // ← ✅ Añadido
         ]);
     }
- 
     // ✅ Nuevo método: Verificación con login automático
     public function verifyCode(Request $request)
     {

@@ -55,61 +55,83 @@ class StaffsController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        'email' => 'required|email',
-        'name' => 'required|string|max:255',
-        'role_id' => 'required|exists:roles,id',
-        'surname' => 'nullable|string|max:255',
-        'mobile' => 'nullable|string|max:15',
-        'birth_date' => 'nullable|date',
-        'gender' => 'nullable|string|max:10',
-        'curp' => 'nullable|string|max:18',
-        'ine' => 'nullable|string|max:18',
-        'rfc' => 'nullable|string|max:13',
-        'attendance_number' => 'nullable|string|max:20',
-        'professional_license' => 'nullable|string|max:20',
-        'funcion_real' => 'nullable|string|max:255',
-        'departament_id' => 'nullable|integer|exists:departaments,id',
-        'profile_id' => 'nullable|integer|exists:profiles,id',
-        'contract_type_id' => 'nullable|integer|exists:contract_types,id',
-    ]);
+    {
+        $request->validate([
+            'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'email' => 'required|email',
+            'name' => 'required|string|max:255',
+            'role_id' => 'required|exists:roles,id',
+            'surname' => 'nullable|string|max:255',
+            'mobile' => 'nullable|string|max:15',
+            'birth_date' => 'nullable|date',
+            'gender' => 'nullable|string|max:10',
+            'curp' => 'nullable|string|max:18',
+            'ine' => 'nullable|string|max:18',
+            'rfc' => 'nullable|string|max:13',
+            'attendance_number' => 'nullable|string|max:20',
+            'professional_license' => 'nullable|string|max:20',
+            'funcion_real' => 'nullable|string|max:255',
+            'departament_id' => 'nullable|integer|exists:departaments,id',
+            'profile_id' => 'nullable|integer|exists:profiles,id',
+            'contract_type_id' => 'nullable|integer|exists:contract_types,id',
+        ]);
 
-    if (User::where("email", $request->email)->exists()) {
+        // 🔠 Convertir a minúsculas
+        $email = strtolower($request->email);
+
+        // ✅ Whitelist de dominios permitidos
+        $allowedDomains = [
+            'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com',
+            'icloud.com', 'live.com', 'protonmail.com',
+            'gmx.com', 'mail.com', 'yahoo.com.mx',
+            'hotmail.com.mx', 'outlook.com.mx', 'live.com.mx',
+            'zoho.com'
+        ];
+        $emailDomain = substr(strrchr($email, "@"), 1);
+        if (!in_array($emailDomain, $allowedDomains)) {
+            return response()->json([
+                "message" => 403,
+                "message_text" => "El dominio del correo no está permitido. Usa un correo como Gmail, Outlook, etc."
+            ]);
+        }
+
+        // ❌ Validar que no exista (con email normalizado)
+        if (User::where("email", $email)->exists()) {
+            return response()->json([
+                "message" => 403,
+                "message_text" => "El Usuario con este email ya existe"
+            ]);
+        }
+
+        // ✅ Preparar los datos
+        $data = $request->only([
+            'name', 'surname', 'mobile', 'birth_date', 'gender',
+            'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
+            'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
+        ]);
+        $data['email'] = $email;
+        $data['email_verification_code'] = Str::upper(Str::random(8));
+
+        if ($request->hasFile("imagen")) {
+            $data["avatar"] = $request->file('imagen')->store('staffs', 'public');
+        }
+
+        if ($request->password) {
+            $data["password"] = bcrypt($request->password);
+        }
+
+        $user = User::create($data);
+        $user->assignRole(Role::findOrFail($request->role_id));
+
         return response()->json([
-            "message" => 403,
-            "message_text" => "El Usuario con este email ya existe"
+            "message" => 200,
+            "message_text" => "Usuario creado correctamente. Se envió un código de verificación al correo.",
+            "user" => new UserResource($user)
         ]);
     }
 
-    $data = $request->only([
-        'name', 'surname', 'email', 'mobile', 'birth_date', 'gender',
-        'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
-        'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
-    ]);
-
-    // Generar código aleatorio de 8 caracteres
-    $data['email_verification_code'] = Str::upper(Str::random(8));
 
 
-    if ($request->hasFile("imagen")) {
-        $data["avatar"] = $request->file('imagen')->store('staffs', 'public');
-    }
-
-    if ($request->password) {
-        $data["password"] = bcrypt($request->password);
-    }
-
-    $user = User::create($data);
-    $user->assignRole(Role::findOrFail($request->role_id));
-
-    return response()->json([
-        "message" => 200,
-        "message_text" => "Usuario creado correctamente. Se envió un código de verificación al correo.",
-        "user" => new UserResource($user)
-    ]);
-}
 
     public function show($id)
     {
@@ -214,7 +236,7 @@ class StaffsController extends Controller
 
         $user->update($data);
 
-        
+
 
         return response()->json([
             "message" => "Perfil completado exitosamente.",
