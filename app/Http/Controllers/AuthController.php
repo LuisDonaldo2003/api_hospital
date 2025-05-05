@@ -6,10 +6,11 @@ use Str;
 use Mail;
 use Validator;
 use App\Models\User;
-use App\Mail\VerificationCodeMail;
 use Illuminate\Http\Request;
+use App\Mail\VerificationCodeMail;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\User\UserResource;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class AuthController extends Controller
@@ -102,8 +103,15 @@ class AuthController extends Controller
 
     public function me()
     {
-        return response()->json(auth('api')->user());
+        $userId = auth('api')->id();
+        $user = User::with(['departament', 'profileRelation', 'contractType'])->findOrFail($userId);
+
+        dd($user); // 👈 Verifica si vienen las relaciones llenas o null
     }
+
+
+
+
 
     public function list()
     {

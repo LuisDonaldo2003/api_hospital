@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Profile;
-use App\Models\ContractType;
 use App\Models\Departaments;
+use App\Models\ContractType;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
