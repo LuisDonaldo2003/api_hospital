@@ -10,31 +10,34 @@ class ContractController extends Controller
 {
     public function index(Request $request)
     {
-        // QUE EL FILTRO POR NOMBRE DE ROL
-        $name = $request->search;
+        $query = ContractType::query();
 
-        $contracts = ContractType::where("name","like","%".$name."%")->orderBy("id","desc")->get();
+        if ($request->filled('search')) {
+            $query->where("name", "like", "%" . $request->search . "%");
+        }
+
+        $contracts = $query->orderBy("id", "desc")->get();
 
         return response()->json([
-            "contracts" => $contracts->map(function($rol) {
+            "contracts" => $contracts->map(function ($contract) {
                 return [
-                    "id" => $rol->id,
-                    "name" => $rol->name,
-                    "state" => $rol->state,
-                    "created_at" => $rol->created_at->format("Y-m-d h:i:s")
+                    "id" => $contract->id,
+                    "name" => $contract->name,
+                    "state" => $contract->state,
+                    "created_at" => $contract->created_at->format("Y-m-d h:i:s")
                 ];
             }),
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $is_contracts = ContractType::where("name",$request->name)->first();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'state' => 'required|boolean',
+        ]);
 
-        if($is_contracts){
+        if (ContractType::where("name", $request->name)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "EL NOMBRE DEL CONTRATO YA EXISTE"
@@ -45,52 +48,62 @@ class ContractController extends Controller
 
         return response()->json([
             "message" => 200,
+            "message_text" => "Contrato creado correctamente",
+            "contract" => [
+                "id" => $contracts->id,
+                "name" => $contracts->name,
+                "state" => $contracts->state,
+            ]
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $contracts = ContractType::findOrFail($id);
+        $contract = ContractType::findOrFail($id);
+
         return response()->json([
-            "id" => $contracts->id,
-            "name" => $contracts->name,
-            "state" => $contracts->state
+            "id" => $contract->id,
+            "name" => $contract->name,
+            "state" => $contract->state
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        $is_contracts = ContractType::where("id","<>",$id)->where("name",$request->name)->first();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'state' => 'required|boolean',
+        ]);
 
-        if($is_contracts){
+        if (ContractType::where("id", "<>", $id)->where("name", $request->name)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "EL NOMBRE DEL CONTRATO YA EXISTE"
             ]);
         }
 
-        $contracts = ContractType::findOrFail($id);
-        $contracts->update($request->all());
+        $contract = ContractType::findOrFail($id);
+        $contract->update($request->all());
+
         return response()->json([
             "message" => 200,
+            "message_text" => "Contrato actualizado correctamente",
+            "contract" => [
+                "id" => $contract->id,
+                "name" => $contract->name,
+                "state" => $contract->state,
+            ]
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        $contracts = ContractType::findOrFail($id);
-        $contracts->delete();
+        $contract = ContractType::findOrFail($id);
+        $contract->delete();
+
         return response()->json([
             "message" => 200,
+            "message_text" => "Contrato eliminado correctamente"
         ]);
     }
 }

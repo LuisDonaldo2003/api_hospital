@@ -7,9 +7,9 @@ use Mail;
 use Validator;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Mail\VerificationCodeMail;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Routing\Controller;
+use App\Mail\VerificationCodeMail;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
@@ -19,7 +19,10 @@ class AuthController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyCode','sendRecoveryCode', 'verifyRecoveryCode', 'resetPassword']]);
+        $this->middleware('auth:api', ['except' => [
+            'login', 'register', 'verifyCode',
+            'sendRecoveryCode', 'verifyRecoveryCode', 'resetPassword'
+        ]]);
     }
 
     public function register()
@@ -103,15 +106,18 @@ class AuthController extends Controller
 
     public function me()
     {
-        $userId = auth('api')->id();
-        $user = User::with(['departament', 'profileRelation', 'contractType'])->findOrFail($userId);
+        $user = auth()->user();
 
-        dd($user); // 👈 Verifica si vienen las relaciones llenas o null
+        return response()->json([
+            'user' => $user->only([
+                'id', 'name', 'surname', 'mobile', 'birth_date', 'gender',
+                'curp', 'rfc', 'ine', 'attendance_number',
+                'professional_license', 'funcion_real',
+                'departament_id', 'profile_id', 'contract_type_id',
+                'avatar'
+            ])
+        ]);
     }
-
-
-
-
 
     public function list()
     {
@@ -124,7 +130,6 @@ class AuthController extends Controller
     public function logout()
     {
         auth()->logout();
-
         return response()->json(['message' => 'Successfully logged out']);
     }
 
@@ -137,9 +142,7 @@ class AuthController extends Controller
     {
         $user = auth('api')->user();
 
-        $permissions = $user->getAllPermissions()->map(function ($perm) {
-            return $perm->name;
-        });
+        $permissions = $user->getAllPermissions()->pluck('name');
 
         return response()->json([
             'access_token' => $token,
@@ -152,10 +155,10 @@ class AuthController extends Controller
                 'roles' => $user->getRoleNames(),
                 'permissions' => $permissions,
             ],
-            'is_profile_complete' => $user->isProfileComplete(), // ← ✅ Añadido
+            'is_profile_complete' => $user->isProfileComplete(),
         ]);
     }
-    // ✅ Nuevo método: Verificación con login automático
+
     public function verifyCode(Request $request)
     {
         $request->validate([
@@ -181,8 +184,6 @@ class AuthController extends Controller
         return $this->respondWithToken($token);
     }
 
-
-        // 📩 Enviar código de recuperación
     public function sendRecoveryCode(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -198,11 +199,9 @@ class AuthController extends Controller
         $user->save();
 
         Mail::to($user->email)->send(new \App\Mail\RecoveryCodeMail($user));
-
         return response()->json(['message' => 'Código de recuperación enviado al correo.']);
     }
 
-    // 🔍 Verificar código de recuperación
     public function verifyRecoveryCode(Request $request)
     {
         $request->validate([
@@ -219,7 +218,6 @@ class AuthController extends Controller
         return response()->json(['message' => 'Código válido.', 'token' => $user->recovery_code]);
     }
 
-    // 🔒 Restablecer contraseña
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -239,5 +237,4 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Contraseña actualizada correctamente.']);
     }
-
 }

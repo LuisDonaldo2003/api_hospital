@@ -11,7 +11,6 @@ class Departaments extends Model
 {
     use HasFactory, SoftDeletes;
 
-
     protected $fillable = [
         'name',
         'state',
@@ -28,4 +27,5 @@ class Departaments extends Model
         date_default_timezone_set('America/Mexico_City');
         $this->attributes["updated_at"] = Carbon::now();
     }
+
 }

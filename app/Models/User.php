@@ -83,7 +83,7 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    // ✅ Nuevo método: comprobar si el perfil está completo
+    // Comprobar si el perfil está completo
     public function isProfileComplete(): bool
     {
         return $this->mobile &&

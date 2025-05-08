@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// 🔐 Autenticación
 Route::group([
     'prefix' => 'auth',
 ], function ($router) {
@@ -52,11 +53,12 @@ Route::post('/resend-code', function (Request $request) {
     return response()->json(['message' => 'Código reenviado con éxito.']);
 });
 
-// 🔐 Recuperación de contraseña (usando métodos del AuthController)
+// 🔐 Recuperación de contraseña
 Route::post('/forgot-password/send-code', [AuthController::class, 'sendRecoveryCode']);
 Route::post('/forgot-password/verify-code', [AuthController::class, 'verifyRecoveryCode']);
 Route::post('/forgot-password/reset', [AuthController::class, 'resetPassword']);
 
+// 🔐 Rutas protegidas con token
 Route::group([
     'middleware' => 'auth:api',
 ], function ($router) {
@@ -67,17 +69,22 @@ Route::group([
     Route::get("staffs/config", [StaffsController::class, "config"]);
     Route::post("staffs/{id}", [StaffsController::class, "update"]);
     Route::resource("staffs", StaffsController::class);
+    Route::post('/complete-profile', [StaffsController::class, 'completeProfile']);
 
-    //Complete-user
-    Route::middleware('auth:api')->post('/complete-profile', [StaffsController::class, 'completeProfile']);
-
-    // Departaments
+    // Departamentos
     Route::resource("departaments", DepartamentController::class);
 
-    // Contracts
+    // Tipos de contrato
     Route::resource("contracts", ContractController::class);
 
-    // Profile
+    // Perfiles
     Route::resource("profile", ProfileController::class);
+
+    // Perfil personal del usuario autenticado
     Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
+    Route::put('users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']); // ✅ NUEVA RUTA
 });
+
+Route::middleware('auth:api')->put('/users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']);
+
+Route::middleware('auth:api')->get('/users/{id}', [StaffsController::class, 'show']);

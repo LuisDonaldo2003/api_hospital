@@ -10,47 +10,39 @@ use App\Models\Departaments;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Mail;
-use App\Http\Resources\UserCollection;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Support\Str;
-use App\Mail\VerificationCodeMail;
+
 class StaffsController extends Controller
 {
     public function index(Request $request)
-{
-    $query = User::query();
+    {
+        $query = User::query();
 
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where("name", "like", "%".$search."%")
-              ->orWhere("surname", "like", "%".$search."%")
-              ->orWhere("email", "like", "%".$search."%");
-        });
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where("name", "like", "%{$search}%")
+                  ->orWhere("surname", "like", "%{$search}%")
+                  ->orWhere("email", "like", "%{$search}%");
+            });
+        }
+
+        $users = $query->orderBy("id", "desc")->get();
+
+        return response()->json([
+            "users" => UserResource::collection($users),
+        ]);
     }
-
-    $users = $query->orderBy("id", "desc")->get();
-
-    return response()->json([
-        "users" => UserResource::collection($users),
-    ]);
-}
-
 
     public function config()
     {
-        $roles = Role::all();
-        $departaments = Departaments::select("id", "name")->get();
-        $profiles = Profile::select("id", "name")->get();
-        $contractTypes = ContractType::select("id", "name")->get();
-
         return response()->json([
-            "roles" => $roles,
-            "departaments" => $departaments,
-            "profiles" => $profiles,
-            "contract_types" => $contractTypes,
+            "roles" => Role::all(),
+            "departaments" => Departaments::select("id", "name")->get(),
+            "profiles" => Profile::select("id", "name")->get(),
+            "contractTypes" => ContractType::select("id", "name")->get(),
         ]);
     }
 
@@ -76,10 +68,8 @@ class StaffsController extends Controller
             'contract_type_id' => 'nullable|integer|exists:contract_types,id',
         ]);
 
-        // 🔠 Convertir a minúsculas
         $email = strtolower($request->email);
 
-        // ✅ Whitelist de dominios permitidos
         $allowedDomains = [
             'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com',
             'icloud.com', 'live.com', 'protonmail.com',
@@ -95,7 +85,6 @@ class StaffsController extends Controller
             ]);
         }
 
-        // ❌ Validar que no exista (con email normalizado)
         if (User::where("email", $email)->exists()) {
             return response()->json([
                 "message" => 403,
@@ -103,7 +92,6 @@ class StaffsController extends Controller
             ]);
         }
 
-        // ✅ Preparar los datos
         $data = $request->only([
             'name', 'surname', 'mobile', 'birth_date', 'gender',
             'curp', 'ine', 'rfc', 'attendance_number', 'professional_license',
@@ -130,9 +118,6 @@ class StaffsController extends Controller
         ]);
     }
 
-
-
-
     public function show($id)
     {
         $user = User::with('roles')->find($id);
@@ -147,7 +132,7 @@ class StaffsController extends Controller
         $user->avatar = $user->avatar ? asset('storage/' . $user->avatar) : null;
 
         return response()->json([
-            "user" => $user
+            "user" => new UserResource($user)
         ]);
     }
 
@@ -200,7 +185,6 @@ class StaffsController extends Controller
         ]);
     }
 
-
     public function completeProfile(Request $request)
     {
         $user = auth()->user();
@@ -229,21 +213,18 @@ class StaffsController extends Controller
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
-                \Storage::delete('public/' . $user->avatar);
+                Storage::delete('public/' . $user->avatar);
             }
             $data['avatar'] = $request->file('avatar')->store('staffs', 'public');
         }
 
         $user->update($data);
 
-
-
         return response()->json([
             "message" => "Perfil completado exitosamente.",
             "user" => new UserResource($user)
         ]);
     }
-
 
     public function destroy(string $id)
     {
@@ -252,6 +233,7 @@ class StaffsController extends Controller
             Storage::delete('public/' . $user->avatar);
         }
         $user->delete();
+
         return response()->json([
             "message" => 200,
             "message_text" => "Usuario eliminado correctamente",

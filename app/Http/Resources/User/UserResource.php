@@ -15,7 +15,7 @@ class UserResource extends JsonResource
             "name"                  => $this->name,
             "surname"               => $this->surname,
             "email"                 => $this->email,
-            "birth_date"            => $this->birth_date ? Carbon::parse($this->birth_date)->format("Y/m/d") : null,
+            "birth_date" => $this->birth_date ? Carbon::parse($this->birth_date)->format("Y-m-d") : null,
             "gender"                => $this->gender,
             "mobile"                => $this->mobile,
             "avatar"                => $this->avatar ? asset('storage/' . $this->avatar) : null,
@@ -32,8 +32,13 @@ class UserResource extends JsonResource
 
             // Relaciones con nombre
             "departament"       => optional($this->departament)->name,
+            "departament_id"    => $this->departament_id,
+
             "profile_relation"  => optional($this->profileRelation)->name,
+            "profile_id"        => $this->profile_id,
+
             "contract_type"     => optional($this->contractType)->name,
+            "contract_type_id"  => $this->contract_type_id,
 
 
         ];

@@ -9,13 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class UserFunction extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'name',
         'state',
@@ -23,13 +18,13 @@ class UserFunction extends Model
 
     public function setCreatedAtAttribute($value)
     {
-    	date_default_timezone_set('America/Mexico_City');
-        $this->attributes["created_at"]= Carbon::now();
+        date_default_timezone_set('America/Mexico_City');
+        $this->attributes["created_at"] = Carbon::now();
     }
 
     public function setUpdatedAtAttribute($value)
     {
-    	date_default_timezone_set('America/Mexico_City');
-        $this->attributes["updated_at"]= Carbon::now();
+        date_default_timezone_set('America/Mexico_City');
+        $this->attributes["updated_at"] = Carbon::now();
     }
 }

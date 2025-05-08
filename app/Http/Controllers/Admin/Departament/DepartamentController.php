@@ -10,31 +10,34 @@ class DepartamentController extends Controller
 {
     public function index(Request $request)
     {
-        // QUE EL FILTRO POR NOMBRE DE ROL
-        $name = $request->search;
+        $query = Departaments::query();
 
-        $departaments = Departaments::where("name","like","%".$name."%")->orderBy("id","desc")->get();
+        if ($request->filled('search')) {
+            $query->where("name", "like", "%" . $request->search . "%");
+        }
+
+        $departaments = $query->orderBy("id", "desc")->get();
 
         return response()->json([
-            "departaments" => $departaments->map(function($rol) {
+            "departaments" => $departaments->map(function ($departament) {
                 return [
-                    "id" => $rol->id,
-                    "name" => $rol->name,
-                    "state" => $rol->state,
-                    "created_at" => $rol->created_at->format("Y-m-d h:i:s")
+                    "id" => $departament->id,
+                    "name" => $departament->name,
+                    "state" => $departament->state,
+                    "created_at" => $departament->created_at->format("Y-m-d h:i:s")
                 ];
             }),
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $is_departaments = Departaments::where("name",$request->name)->first();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'state' => 'required|boolean',
+        ]);
 
-        if($is_departaments){
+        if (Departaments::where("name", $request->name)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "EL NOMBRE DEL DEPARTAMENTO YA EXISTE"
@@ -45,52 +48,62 @@ class DepartamentController extends Controller
 
         return response()->json([
             "message" => 200,
+            "message_text" => "Departamento creado correctamente",
+            "departament" => [
+                "id" => $departaments->id,
+                "name" => $departaments->name,
+                "state" => $departaments->state,
+            ]
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $departaments = Departaments::findOrFail($id);
+        $departament = Departaments::findOrFail($id);
+
         return response()->json([
-            "id" => $departaments->id,
-            "name" => $departaments->name,
-            "state" => $departaments->state
+            "id" => $departament->id,
+            "name" => $departament->name,
+            "state" => $departament->state
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        $is_departaments = Departaments::where("id","<>",$id)->where("name",$request->name)->first();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'state' => 'required|boolean',
+        ]);
 
-        if($is_departaments){
+        if (Departaments::where("id", "<>", $id)->where("name", $request->name)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "EL NOMBRE DEL DEPARTAMENTO YA EXISTE"
             ]);
         }
 
-        $departaments = Departaments::findOrFail($id);
-        $departaments->update($request->all());
+        $departament = Departaments::findOrFail($id);
+        $departament->update($request->all());
+
         return response()->json([
             "message" => 200,
+            "message_text" => "Departamento actualizado correctamente",
+            "departament" => [
+                "id" => $departament->id,
+                "name" => $departament->name,
+                "state" => $departament->state,
+            ]
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        $departaments = Departaments::findOrFail($id);
-        $departaments->delete();
+        $departament = Departaments::findOrFail($id);
+        $departament->delete();
+
         return response()->json([
             "message" => 200,
+            "message_text" => "Departamento eliminado correctamente"
         ]);
     }
 }

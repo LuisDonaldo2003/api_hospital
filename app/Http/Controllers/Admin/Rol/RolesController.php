@@ -8,16 +8,15 @@ use App\Http\Controllers\Controller;
 
 class RolesController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
-        $name = $request->search;
+        $query = Role::query();
 
-        $roles = Role::where("name", "like", "%" . $name . "%")
-            ->orderBy("id", "desc")
-            ->get();
+        if ($request->filled('search')) {
+            $query->where("name", "like", "%" . $request->search . "%");
+        }
+
+        $roles = $query->orderBy("id", "desc")->with('permissions')->get();
 
         return response()->json([
             "roles" => $roles->map(function ($rol) {
@@ -25,28 +24,22 @@ class RolesController extends Controller
                     "id" => $rol->id,
                     "name" => $rol->name,
                     "permissions" => $rol->permissions,
-                    "permission_pluck" => $rol->permissions->pluck("name"), // Asegurar que se incluya este campo
+                    "permission_pluck" => $rol->permissions->pluck("name"),
                     "created_at" => $rol->created_at->format("Y-m-d h:i:s")
                 ];
             }),
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        // Validación
         $request->validate([
             'name' => 'required|string|max:255',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name'
         ]);
 
-        $is_role = Role::where("name", $request->name)->first();
-
-        if ($is_role) {
+        if (Role::where("name", $request->name)->exists()) {
             return response()->json([
                 "message" => 403,
                 "message_text" => "EL NOMBRE DEL ROL YA EXISTE"
@@ -58,7 +51,6 @@ class RolesController extends Controller
             'name' => $request->name,
         ]);
 
-        // Asignar permisos si vienen
         if (is_array($request->permissions)) {
             $role->syncPermissions($request->permissions);
         }
@@ -74,12 +66,10 @@ class RolesController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $role = Role::findOrFail($id);
+        $role = Role::with('permissions')->findOrFail($id);
+
         return response()->json([
             "id" => $role->id,
             "name" => $role->name,
@@ -89,12 +79,8 @@ class RolesController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        // Validación
         $request->validate([
             'name' => 'required|string|max:255|unique:roles,name,' . $id,
             'permissions' => 'nullable|array',
@@ -102,16 +88,12 @@ class RolesController extends Controller
         ]);
 
         $role = Role::findOrFail($id);
-        $role->update([
-            'name' => $request->name
-        ]);
+        $role->update(['name' => $request->name]);
 
-        // Sincronizar permisos solo si se envían en la solicitud
         if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);
         }
 
-        // Recargar los permisos actualizados
         $role->load('permissions');
 
         return response()->json([
@@ -121,16 +103,12 @@ class RolesController extends Controller
                 "id" => $role->id,
                 "name" => $role->name,
                 "permissions" => $role->permissions,
-                "permission_pluck" => $role->permissions->pluck("name"), // Asegurar que se incluyan los permisos actualizados
+                "permission_pluck" => $role->permissions->pluck("name"),
                 "created_at" => $role->created_at->format("Y-m-d h:i:s")
             ]
         ], 200);
     }
 
-
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $role = Role::findOrFail($id);
@@ -138,7 +116,7 @@ class RolesController extends Controller
         if ($role->users && $role->users->count() > 0) {
             return response()->json([
                 "message" => 403,
-                "message_text" => "EL ROL SELECCIONADO NO SE PUEDE ELIMINAR POR MOTIVOS QUE YA TIENE USUARIOS RELACIONADOS"
+                "message_text" => "EL ROL SELECCIONADO NO SE PUEDE ELIMINAR PORQUE TIENE USUARIOS RELACIONADOS"
             ], 403);
         }
 
