@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\VerificationCodeMail;
 use App\Mail\RecoveryCodeMail;
+
+// Controladores
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\Admin\Rol\RolesController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\Admin\Staff\StaffsController;
 use App\Http\Controllers\Admin\Profile\ProfileController;
 use App\Http\Controllers\Admin\ContractTypes\ContractController;
 use App\Http\Controllers\Admin\Departament\DepartamentController;
+use App\Http\Controllers\Admin\Archive\ArchiveController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -23,7 +26,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // 🔐 Autenticación
 Route::group([
     'prefix' => 'auth',
-], function ($router) {
+], function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -61,7 +64,7 @@ Route::post('/forgot-password/reset', [AuthController::class, 'resetPassword']);
 // 🔐 Rutas protegidas con token
 Route::group([
     'middleware' => 'auth:api',
-], function ($router) {
+], function () {
     // Roles
     Route::resource("roles", RolesController::class);
 
@@ -80,11 +83,14 @@ Route::group([
     // Perfiles
     Route::resource("profile", ProfileController::class);
 
+    // Archivos (nuevo módulo)
+    Route::resource("archives", ArchiveController::class);
+
     // Perfil personal del usuario autenticado
     Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
-    Route::put('users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']); // ✅ NUEVA RUTA
+    Route::put('users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']);
 });
 
+// Accesos externos directos
 Route::middleware('auth:api')->put('/users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']);
-
 Route::middleware('auth:api')->get('/users/{id}', [StaffsController::class, 'show']);

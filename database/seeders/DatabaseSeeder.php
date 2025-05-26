@@ -17,6 +17,12 @@ class DatabaseSeeder extends Seeder
         ProfileSeeder::class,
         ContractTypeSeeder::class,
         PermissionsDemoSeeder::class,
+        GenderSeeder::class,
+        CountrySeeder::class,
+        StateSeeder::class,
+        MunicipalitySeeder::class,
+        LocationSeeder::class,
+        ArchiveSeeder::class,
     ]);
 }
 

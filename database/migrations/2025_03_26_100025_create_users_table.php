@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('password')->nullable();
             $table->string('mobile')->nullable();
             $table->date('birth_date')->nullable();
-            $table->tinyInteger('gender')->nullable(); // 1=Hombre, 2=Mujer
+            $table->unsignedBigInteger('gender_id')->nullable();
 
             // Nuevos campos
             // $table->string('profile')->nullable(); // perfil textual
@@ -36,6 +36,8 @@ return new class extends Migration
             $table->foreignId('profile_id')->nullable()->constrained('profiles')->nullOnDelete();
             $table->foreignId('contract_type_id')->nullable()->constrained('contract_types')->nullOnDelete();
             $table->foreignId('user_id')->nullable()->index(); // usado por algunas relaciones en Laravel
+            $table->foreign('gender_id')->references('id')->on('genders')->onDelete('set null');
+
 
             $table->string('avatar')->nullable();
 
