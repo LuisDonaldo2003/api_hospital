@@ -193,7 +193,7 @@ class StaffsController extends Controller
             'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'mobile' => 'required|string|max:15',
             'birth_date' => 'required|date',
-            'gender' => 'required|string|max:10',
+            'gender_id' => 'required|integer|exists:genders,id',
             'curp' => 'required|string|max:18',
             'ine' => 'required|string|max:18',
             'rfc' => 'required|string|max:13',
@@ -206,7 +206,7 @@ class StaffsController extends Controller
         ]);
 
         $data = $request->only([
-            'mobile', 'birth_date', 'gender', 'curp', 'ine', 'rfc',
+            'mobile', 'birth_date', 'gender_id', 'curp', 'ine', 'rfc',
             'attendance_number', 'professional_license', 'funcion_real',
             'departament_id', 'profile_id', 'contract_type_id'
         ]);

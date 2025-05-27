@@ -35,6 +35,11 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'edit_staff']);
         Permission::create(['guard_name' => 'api','name' => 'delete_staff']);
 
+        // Pacientes
+        Permission::create(['guard_name' => 'api','name' => 'add_archive']);
+        Permission::create(['guard_name' => 'api','name' => 'list_archive']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_archive']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_archive']);
 
         //Contracts
         Permission::create(['guard_name' => 'api','name' => 'add_contract']);
@@ -128,5 +133,60 @@ class PermissionsDemoSeeder extends Seeder
             ]
         );
         $userDoctor->assignRole($roleDoctor);
+
+
+         // Doctor con permisos específicos
+        $roleInge = Role::create(['guard_name' => 'api','name' => 'Developer']);
+
+        $ingePermissions = [
+            'admin_dashboard',
+            'doctor_dashboard',
+            'register_rol',
+            'list_rol',
+            'edit_rol',
+            'delete_rol',
+            'register_staff',
+            'list_staff',
+            'edit_staff',
+            'delete_staff',
+            'add_archive',
+            'list_archive',
+            'edit_archive',
+            'delete_archive',
+            'add_contract',
+            'list_contract',
+            'edit_contract',
+            'delete_contract',
+            'add_profile-m',
+            'list_profile-m',
+            'edit_profile-m',
+            'delete_profile-m',
+            'add_departament',
+            'list_departament',
+            'edit_departament',
+            'delete_departament',
+            'register_doctor',
+            'list_doctor',
+            'edit_doctor',
+            'delete_doctor',
+            'register_patient',
+            'list_patient',
+            'edit_patient',
+            'delete_patient',
+            'register_appointment',
+            'list_appointment',
+            'edit_appointment',
+            'delete_appointment',
+            'attention_appointment',
+            'show_payment',
+            'edit_payment',
+            'delete_payment',
+            'add_payment',
+            'calendar',
+        ];
+
+        $roleInge->syncPermissions($ingePermissions);
+
+
     }
 }
