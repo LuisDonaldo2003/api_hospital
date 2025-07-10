@@ -3,21 +3,24 @@
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Mail\RecoveryCodeMail;
+use App\Mail\VerificationCodeMail;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Hash;
-use App\Mail\VerificationCodeMail;
-use App\Mail\RecoveryCodeMail;
 
 // Controladores
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\Admin\Rol\RolesController;
+use App\Http\Controllers\Admin\State\StateController;
 use App\Http\Controllers\Admin\Staff\StaffsController;
+use App\Http\Controllers\Admin\Archive\ArchiveController;
 use App\Http\Controllers\Admin\Profile\ProfileController;
+use App\Http\Controllers\Admin\Location\LocationController;
 use App\Http\Controllers\Admin\ContractTypes\ContractController;
 use App\Http\Controllers\Admin\Departament\DepartamentController;
-use App\Http\Controllers\Admin\Archive\ArchiveController;
+use App\Http\Controllers\Admin\Municipality\MunicipalityController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -65,32 +68,43 @@ Route::post('/forgot-password/reset', [AuthController::class, 'resetPassword']);
 Route::group([
     'middleware' => 'auth:api',
 ], function () {
-    // Roles
+
+    // ⚠️ Deprecado: antes devolvía genders y estados juntos
+    Route::get("archives/config", [ArchiveController::class, "config"]);
+
+    // ✅ NUEVOS ENDPOINTS
+    Route::get('genders', [ArchiveController::class, 'genders']);
+    Route::get('states', [ArchiveController::class, 'states']); // sin municipios anidados
+
+    // Municipios y localidades por estado
+    Route::get('municipalities', [MunicipalityController::class, 'byState']);
+    Route::get('locations', [LocationController::class, 'byMunicipality']);
+
+    // Recursos principales
+    Route::resource("archives", ArchiveController::class);
     Route::resource("roles", RolesController::class);
 
-    // Staffs
     Route::get("staffs/config", [StaffsController::class, "config"]);
     Route::post("staffs/{id}", [StaffsController::class, "update"]);
     Route::resource("staffs", StaffsController::class);
     Route::post('/complete-profile', [StaffsController::class, 'completeProfile']);
 
-    // Departamentos
     Route::resource("departaments", DepartamentController::class);
-
-    // Tipos de contrato
     Route::resource("contracts", ContractController::class);
-
-    // Perfiles
     Route::resource("profile", ProfileController::class);
 
-    // Archivos (nuevo módulo)
-    Route::resource("archives", ArchiveController::class);
-
-    // Perfil personal del usuario autenticado
+    // Avatar
     Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
     Route::put('users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']);
 });
 
 // Accesos externos directos
 Route::middleware('auth:api')->put('/users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']);
-Route::middleware('auth:api')->get('/users/{id}', [StaffsController::class, 'show']);
+Route::middleware('auth:api')->get('/users/{id}', [StaffsController::class, 'show']);;
+
+// Backup de archivos
+Route::prefix('archives/backup')->group(function () {
+    Route::post('/upload', [ArchiveController::class, 'uploadBackup']);
+    Route::get('/list', [ArchiveController::class, 'listBackups']);
+    Route::get('/download/{filename}', [ArchiveController::class, 'downloadBackup']);
+});

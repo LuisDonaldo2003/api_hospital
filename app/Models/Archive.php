@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Gender;
-use App\Models\Location;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -13,7 +11,7 @@ class Archive extends Model
 
     protected $table = 'archive';
     protected $primaryKey = 'archive_number';
-    public $incrementing = false; 
+    public $incrementing = false;
 
     protected $fillable = [
         'archive_number',
@@ -32,7 +30,6 @@ class Archive extends Model
 
     protected $dates = ['admission_date', 'created_at', 'updated_at', 'deleted_at'];
 
-    // Relaciones
     public function gender()
     {
         return $this->belongsTo(Gender::class);
@@ -43,3 +40,4 @@ class Archive extends Model
         return $this->belongsTo(Location::class);
     }
 }
+

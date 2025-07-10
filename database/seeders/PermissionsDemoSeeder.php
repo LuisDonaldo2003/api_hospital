@@ -188,5 +188,26 @@ class PermissionsDemoSeeder extends Seeder
         $roleInge->syncPermissions($ingePermissions);
 
 
+        //Archivo
+        $roleArchive = Role::create(['guard_name' => 'api','name' => 'Archivo ']);
+        $ingeArchivePermissions = [
+            'add_archive',
+            'list_archive',
+            'edit_archive',
+            'delete_archive',
+        ];
+        $roleArchive->syncPermissions($ingeArchivePermissions);
+
+         $userArchive = User::updateOrCreate(
+            ['email' => 'archivo@gmail.com'],
+            [
+                'name' => 'Archivo User',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userArchive->assignRole($roleArchive);
+
+
     }
 }
