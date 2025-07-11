@@ -15,12 +15,18 @@ class UserResource extends JsonResource
             "name"                  => $this->name,
             "surname"               => $this->surname,
             "email"                 => $this->email,
-            "birth_date" => $this->birth_date ? Carbon::parse($this->birth_date)->format("Y-m-d") : null,
+            "birth_date"            => $this->birth_date ? Carbon::parse($this->birth_date)->format("Y-m-d") : null,
             "gender"                => $this->gender,
             "mobile"                => $this->mobile,
             "avatar"                => $this->avatar ? asset('storage/' . $this->avatar) : null,
             "created_at"            => $this->created_at->format("Y/m/d"),
-            "role"                  => $this->roles->first(),
+            "role"                  => $this->roles->first(), // Objeto rol principal
+            "roles"                 => $this->roles->map(function($role) {
+                                    return [
+                                        'id' => $role->id,
+                                        'name' => $role->name
+                                    ];
+                                })->values(), // Array de roles
 
             // Campos personalizados
             "curp"                  => $this->curp,
@@ -31,14 +37,14 @@ class UserResource extends JsonResource
             "funcion_real"          => $this->funcion_real,
 
             // Relaciones con nombre
-            "departament"       => optional($this->departament)->name,
-            "departament_id"    => $this->departament_id,
+            "departament"           => optional($this->departament)->name,
+            "departament_id"        => $this->departament_id,
 
-            "profile_relation"  => optional($this->profileRelation)->name,
-            "profile_id"        => $this->profile_id,
+            "profile_relation"      => optional($this->profileRelation)->name,
+            "profile_id"            => $this->profile_id,
 
-            "contract_type"     => optional($this->contractType)->name,
-            "contract_type_id"  => $this->contract_type_id,
+            "contract_type"         => optional($this->contractType)->name,
+            "contract_type_id"      => $this->contract_type_id,
 
 
         ];

@@ -174,7 +174,8 @@ class StaffsController extends Controller
 
         $user->update($data);
 
-        if ($request->role_id && $request->role_id != $user->roles()->first()->id) {
+        // Siempre sincroniza el rol si viene en la petición
+        if ($request->role_id) {
             $user->syncRoles([Role::findOrFail($request->role_id)]);
         }
 
