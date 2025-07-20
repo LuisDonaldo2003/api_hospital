@@ -12,6 +12,7 @@ use Illuminate\Routing\Controller;
 use App\Mail\VerificationCodeMail;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
@@ -79,6 +80,9 @@ class AuthController extends Controller
 
         $user = auth('api')->user();
 
+        // Marcar al usuario como en línea (sin expiración corta)
+        \Cache::forever('user-is-online-' . $user->id, true);
+
         if (is_null($user->email_verified_at)) {
             $expired = true;
 
@@ -123,12 +127,16 @@ class AuthController extends Controller
     {
         $users = User::all();
         return response()->json([
-            "users" => $users,
+            "users" => UserResource::collection($users),
         ]);
     }
 
     public function logout()
     {
+        $user = auth('api')->user();
+        if ($user) {
+            \Cache::forget('user-is-online-' . $user->id);
+        }
         auth()->logout();
         return response()->json(['message' => 'Successfully logged out']);
     }
@@ -149,6 +157,7 @@ class AuthController extends Controller
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
             'user' => [
+                'id' => $user->id, // <-- AGREGA ESTA LÍNEA
                 'name' => $user->name,
                 'surname' => $user->surname,
                 'email' => $user->email,

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -98,5 +99,10 @@ class User extends Authenticatable implements JWTSubject
                $this->departament_id &&
                $this->profile_id &&
                $this->contract_type_id;
+    }
+
+    public function isOnline()
+    {
+        return \Cache::has('user-is-online-' . $this->id);
     }
 }

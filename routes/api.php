@@ -108,3 +108,4 @@ Route::prefix('archives/backup')->group(function () {
     Route::get('/list', [ArchiveController::class, 'listBackups']);
     Route::get('/download/{filename}', [ArchiveController::class, 'downloadBackup']);
 });
+Route::post('/profile/avatar/{id}', [ProfileAvatarController::class, 'update'])->middleware('auth:api');

@@ -30,7 +30,7 @@ class ProfileAvatarController extends Controller
         \Log::info('📥 Request recibido:', $request->all());
 
         $user->fill($request->only([
-            'name', 'surname', 'mobile', 'birth_date', 'gender',
+            'name', 'surname', 'mobile', 'birth_date', 'gender_id',
             'curp', 'rfc', 'ine', 'attendance_number', 'professional_license',
             'funcion_real', 'departament_id', 'profile_id', 'contract_type_id'
         ]));
@@ -41,7 +41,7 @@ class ProfileAvatarController extends Controller
             }
             $file = $request->file('avatar');
             $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->storeAs('public/staffs', $filename);
+            $file->storeAs('staffs', $filename, 'public');
             $user->avatar = 'staffs/' . $filename;
         }
 

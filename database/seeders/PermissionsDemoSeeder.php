@@ -47,6 +47,9 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'edit_contract']);
         Permission::create(['guard_name' => 'api','name' => 'delete_contract']);
 
+        //Lista de organigrama
+        Permission::create(['guard_name' => 'api','name' => 'list_organization']);
+
         //Profile
         Permission::create(['guard_name' => 'api','name' => 'add_profile-m']);
         Permission::create(['guard_name' => 'api','name' => 'list_profile-m']);
@@ -92,50 +95,113 @@ class PermissionsDemoSeeder extends Seeder
 
         // --- ROLES Y USUARIOS ---
 
-        // Super-Admin (con acceso total)
-        $roleSuperAdmin = Role::create(['guard_name' => 'api','name' => 'Super-Admin']);
+        // Director General (con acceso total)
+        $roleSuperAdmin = Role::create(['guard_name' => 'api','name' => 'Director General']);
 
         $userSuper = User::factory()->create([
-            'name' => 'Super-Admin User',
-            'email' => 'prueba@gmail.com',
+            'name' => 'Dr. Eric Aburto Álvarez',
+            'email' => 'director@gmail.com',
             'password' => bcrypt('12345678')
         ]);
         $userSuper->assignRole($roleSuperAdmin);
 
-        // Doctor con permisos específicos
-        $roleDoctor = Role::create(['guard_name' => 'api','name' => 'Doctor']);
+        // Subdirector General (con acceso total)
+        $roleSubAdmin = Role::create(['guard_name' => 'api','name' => 'Subdirector General']);
 
-        $doctorPermissions = [
+        $subPermissions = [
+            'admin_dashboard',
+            'doctor_dashboard',
+            'register_rol',
+            'list_rol',
+            'edit_rol',
+            'delete_rol',
+            'register_staff',
+            'list_staff',
+            'edit_staff',
+            'delete_staff',
+            'list_organization',
+            'add_archive',
+            'list_archive',
+            'edit_archive',
+            'delete_archive',
+            'add_contract',
+            'list_contract',
+            'edit_contract',
+            'delete_contract',
+            'add_profile-m',
+            'list_profile-m',
+            'edit_profile-m',
+            'delete_profile-m',
+            'add_departament',
+            'list_departament',
+            'edit_departament',
+            'delete_departament',
+            'register_doctor',
             'list_doctor',
             'edit_doctor',
-            'profile_doctor',
+            'delete_doctor',
             'register_patient',
             'list_patient',
             'edit_patient',
             'delete_patient',
-            'profile_patient',
             'register_appointment',
             'list_appointment',
             'edit_appointment',
             'delete_appointment',
             'attention_appointment',
+            'show_payment',
+            'edit_payment',
+            'delete_payment',
+            'add_payment',
             'calendar',
         ];
 
-        $roleDoctor->syncPermissions($doctorPermissions);
+        $roleSubAdmin->syncPermissions($subPermissions);
 
-        $userDoctor = User::updateOrCreate(
-            ['email' => 'doctor@gmail.com'],
+        $userSubdirector = User::updateOrCreate(
+            ['email' => 'subdirector@gmail.com'],
             [
-                'name' => 'Doctor User',
+                'name' => 'Dr. Oswaldo Manuel Vergara Campos',
                 'password' => Hash::make('12345678'),
                 'email_verified_at' => now(),
             ]
         );
-        $userDoctor->assignRole($roleDoctor);
+        $userSubdirector->assignRole($roleSubAdmin);
+
+        // // Doctor con permisos específicos
+        // $roleDoctor = Role::create(['guard_name' => 'api','name' => 'Doctor']);
+
+        // $doctorPermissions = [
+        //     'list_doctor',
+        //     'edit_doctor',
+        //     'profile_doctor',
+        //     'register_patient',
+        //     'list_patient',
+        //     'edit_patient',
+        //     'delete_patient',
+        //     'profile_patient',
+        //     'register_appointment',
+        //     'list_appointment',
+        //     'edit_appointment',
+        //     'delete_appointment',
+        //     'attention_appointment',
+        //     'calendar',
+        // ];
+
+        // $roleDoctor->syncPermissions($doctorPermissions);
+
+        // $userDoctor = User::updateOrCreate(
+        //     ['email' => 'doctor@gmail.com'],
+        //     [
+        //         'name' => 'Doctor User',
+        //         'password' => Hash::make('12345678'),
+        //         'email_verified_at' => now(),
+        //     ]
+        // );
+        // $userDoctor->assignRole($roleDoctor);
 
 
-         // Doctor con permisos específicos
+         // Developer con permisos específicos
         $roleInge = Role::create(['guard_name' => 'api','name' => 'Developer']);
 
         $ingePermissions = [
@@ -149,6 +215,7 @@ class PermissionsDemoSeeder extends Seeder
             'list_staff',
             'edit_staff',
             'delete_staff',
+            'list_organization',
             'add_archive',
             'list_archive',
             'edit_archive',
@@ -186,6 +253,56 @@ class PermissionsDemoSeeder extends Seeder
         ];
 
         $roleInge->syncPermissions($ingePermissions);
+
+        $userDeveloper = User::updateOrCreate(
+            ['email' => 'monsterpark1000@gmail.com'],
+            [
+                'name' => 'Luis Donaldo López Martínez',
+                'password' => Hash::make('Marimar97'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDeveloper->assignRole($roleInge);
+
+        $userDeveloper2 = User::updateOrCreate(
+            ['email' => 'reynosozavaleta@gmail.com'],
+            [
+                'name' => 'Julián Reynoso Zavaleta',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDeveloper2->assignRole($roleInge);
+
+        $userDeveloper3 = User::updateOrCreate(
+            ['email' => 'alevidalperez88@gmail.com'],
+            [
+                'name' => 'Alejandro Vidal Pérez',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDeveloper3->assignRole($roleInge);
+
+        $userDeveloper4 = User::updateOrCreate(
+            ['email' => 'chulotono@gmail.com'],
+            [
+                'name' => 'José Antonio Herrera Chamú',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDeveloper4->assignRole($roleInge);
+
+        $userDeveloper5 = User::updateOrCreate(
+            ['email' => 'peraltakike51@gmail.com'],
+            [
+                'name' => 'Enrique Ruiz Peralta',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDeveloper5->assignRole($roleInge);
 
 
         //Archivo

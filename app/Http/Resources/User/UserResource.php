@@ -46,7 +46,7 @@ class UserResource extends JsonResource
             "contract_type"         => optional($this->contractType)->name,
             "contract_type_id"      => $this->contract_type_id,
 
-
+            'online'                => $this->isOnline(),
         ];
     }
 }
