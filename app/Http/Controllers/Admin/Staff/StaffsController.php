@@ -240,4 +240,18 @@ class StaffsController extends Controller
             "message_text" => "Usuario eliminado correctamente",
         ]);
     }
+
+    public function getSettings(Request $request)
+    {
+        $user = $request->user();
+        return response()->json($user->settings ?? []);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $user = $request->user();
+        $user->settings = array_merge($user->settings ?? [], $request->all());
+        $user->save();
+        return response()->json(['success' => true]);
+    }
 }

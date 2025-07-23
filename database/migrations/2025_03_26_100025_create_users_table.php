@@ -30,6 +30,7 @@ return new class extends Migration
             $table->string('attendance_number', 20)->nullable();
             $table->string('professional_license', 20)->nullable();
             $table->string('funcion_real')->nullable(); // antes llamado 'function'
+            $table->json('settings')->nullable();
 
             // Claves foráneas
             $table->foreignId('departament_id')->nullable()->constrained('departaments')->nullOnDelete();

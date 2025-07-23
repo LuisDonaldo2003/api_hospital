@@ -47,6 +47,7 @@ class UserResource extends JsonResource
             "contract_type_id"      => $this->contract_type_id,
 
             'online'                => $this->isOnline(),
+            "settings"              => $this->settings,
         ];
     }
 }

@@ -96,6 +96,10 @@ Route::group([
     // Avatar
     Route::get('profile_avatar', [ProfileAvatarController::class, 'show']);
     Route::put('users/profile_avatar/{id}', [ProfileAvatarController::class, 'update']);
+
+    // Ajustes
+    Route::get('settings', [StaffsController::class, 'getSettings']);
+    Route::post('settings', [StaffsController::class, 'updateSettings']);
 });
 
 // Accesos externos directos
