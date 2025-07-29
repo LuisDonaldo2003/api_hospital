@@ -14,83 +14,127 @@ use Illuminate\Support\Facades\Storage;
 class ArchiveController extends Controller
 {
     public function index(Request $request)
-{
-    $query = Archive::with(['gender', 'location.municipality.state'])
-        ->orderBy('archive_number', 'asc');
+    {
+        $query = Archive::with(['gender', 'location.municipality.state'])
+            ->orderBy('archive_number', 'asc');
 
-    // Filtro por número de expediente
-    if ($request->filled('archive_number')) {
-        $query->where('archive_number', 'like', '%' . $request->archive_number . '%');
-    }
-
-    // Filtro por nombre (si no está vacío)
-    $name = trim($request->input('name', ''));
-    if ($name !== '') {
-        $name = strtolower($name);
-        $query->where(function ($q) use ($name) {
-            $q->whereRaw('LOWER(name) LIKE ?', ["%$name%"])
-                ->orWhereRaw('LOWER(last_name_father) LIKE ?', ["%$name%"])
-                ->orWhereRaw('LOWER(last_name_mother) LIKE ?', ["%$name%"]);
-        });
-    }
-
-    // Filtro por género
-    if ($request->filled('gender_id')) {
-        $query->where('gender_id', $request->gender_id);
-    }
-
-    // Filtro por estado (validación de relaciones anidadas para evitar errores)
-    if ($request->filled('state_id')) {
-        $query->whereHas('location', function ($q) use ($request) {
-            $q->whereHas('municipality', function ($q2) use ($request) {
-                $q2->whereHas('state', function ($q3) use ($request) {
-                    $q3->where('id', $request->state_id);
+        // Filtro por número de expediente (búsqueda exacta o parcial)
+        if ($request->filled('archive_number')) {
+            $archiveNumber = trim($request->archive_number);
+            // Si es numérico, buscar exacto primero, luego parcial
+            if (is_numeric($archiveNumber)) {
+                $query->where(function($q) use ($archiveNumber) {
+                    $q->where('archive_number', $archiveNumber)
+                      ->orWhere('archive_number', 'like', '%' . $archiveNumber . '%');
                 });
+            } else {
+                $query->where('archive_number', 'like', '%' . $archiveNumber . '%');
+            }
+        }
+
+        // Filtro por nombre (búsqueda mejorada en nombre completo)
+        if ($request->filled('name')) {
+            $name = trim($request->name);
+            if ($name !== '') {
+                $nameWords = explode(' ', strtolower($name));
+                $query->where(function ($q) use ($nameWords) {
+                    foreach ($nameWords as $word) {
+                        $q->where(function ($subQ) use ($word) {
+                            $subQ->whereRaw('LOWER(name) LIKE ?', ["%$word%"])
+                                 ->orWhereRaw('LOWER(last_name_father) LIKE ?', ["%$word%"])
+                                 ->orWhereRaw('LOWER(last_name_mother) LIKE ?', ["%$word%"]);
+                        });
+                    }
+                });
+            }
+        }
+
+        // Filtro por género
+        if ($request->filled('gender_id')) {
+            $query->where('gender_id', $request->gender_id);
+        }
+
+        // Filtros de ubicación optimizados
+        if ($request->filled('state_id')) {
+            $query->whereHas('location.municipality.state', function ($q) use ($request) {
+                $q->where('id', $request->state_id);
             });
-        });
-    }
+        }
 
-    // Filtro por municipio
-    if ($request->filled('municipality_id')) {
-        $query->whereHas('location', function ($q) use ($request) {
-            $q->whereHas('municipality', function ($q2) use ($request) {
-                $q2->where('id', $request->municipality_id);
+        if ($request->filled('municipality_id')) {
+            $query->whereHas('location.municipality', function ($q) use ($request) {
+                $q->where('id', $request->municipality_id);
             });
-        });
+        }
+
+        if ($request->filled('location_id')) {
+            $query->whereHas('location', function ($q) use ($request) {
+                $q->where('id', $request->location_id);
+            });
+        }
+
+
+        // =============================
+        // Filtros de fecha avanzados
+        // =============================
+        if ($request->filled('date_filter_type')) {
+            $type = $request->input('date_filter_type');
+            switch ($type) {
+                case 'year':
+                    if ($request->filled('filter_year')) {
+                        $query->whereYear('admission_date', $request->input('filter_year'));
+                    }
+                    break;
+                case 'month':
+                    if ($request->filled('filter_year') && $request->filled('filter_month')) {
+                        $query->whereYear('admission_date', $request->input('filter_year'));
+                        $query->whereMonth('admission_date', $request->input('filter_month'));
+                    }
+                    break;
+                case 'day':
+                    if ($request->filled('filter_year') && $request->filled('filter_month') && $request->filled('filter_day')) {
+                        $query->whereYear('admission_date', $request->input('filter_year'));
+                        $query->whereMonth('admission_date', $request->input('filter_month'));
+                        $query->whereDay('admission_date', $request->input('filter_day'));
+                    }
+                    break;
+                case 'range':
+                    if ($request->filled('date_from')) {
+                        $query->whereDate('admission_date', '>=', $request->input('date_from'));
+                    }
+                    if ($request->filled('date_to')) {
+                        $query->whereDate('admission_date', '<=', $request->input('date_to'));
+                    }
+                    break;
+            }
+        }
+
+        // Si viene all=true, retornar todos los resultados sin paginar
+        if ($request->boolean('all')) {
+            return response()->json([
+                'data' => $query->get()
+            ]);
+        }
+
+        // Paginación optimizada
+        if ($request->has('skip') && $request->has('limit')) {
+            $skip = max(0, (int) $request->input('skip'));
+            $limit = min(100, max(1, (int) $request->input('limit'))); // Límite máximo de 100
+
+            $total = $query->count();
+            $archives = $query->skip($skip)->take($limit)->get();
+
+            return response()->json([
+                'data' => $archives,
+                'total' => $total,
+                'current_page' => floor($skip / $limit) + 1,
+                'per_page' => $limit
+            ]);
+        }
+
+        // Fallback con paginación por defecto
+        return response()->json($query->paginate(50));
     }
-
-    // Filtro por localidad
-    if ($request->filled('location_id')) {
-        $query->whereHas('location', function ($q) use ($request) {
-            $q->where('id', $request->location_id);
-        });
-    }
-
-
-    // ✅ Si viene all=true, retornar todos los resultados sin paginar
-    if ($request->boolean('all')) {
-        return response()->json([
-            'data' => $query->get()
-        ]);
-    }
-
-    // Paginación
-    if ($request->has('skip') && $request->has('limit')) {
-        $skip = (int) $request->input('skip');
-        $limit = (int) $request->input('limit');
-
-        $total = $query->count();
-        $archives = $query->skip($skip)->take($limit)->get();
-
-        return response()->json([
-            'data' => $archives,
-            'total' => $total
-        ]);
-    }
-
-    // fallback sin paginación
-    return response()->json($query->paginate(50));
-}
 
 
     public function store(Request $request)
