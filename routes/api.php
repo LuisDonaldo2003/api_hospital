@@ -79,6 +79,7 @@ Route::group([
     // Municipios y localidades por estado
     Route::get('municipalities', [MunicipalityController::class, 'byState']);
     Route::get('locations', [LocationController::class, 'byMunicipality']);
+    Route::get('locations/search', [LocationController::class, 'searchByName']);
 
     // Recursos principales
     Route::resource("archives", ArchiveController::class);
