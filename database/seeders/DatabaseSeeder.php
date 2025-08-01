@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         MunicipalitySeeder::class,
         LocationSeeder::class,
         ArchiveSeeder::class,
+        PriorityLocationSeeder::class,
     ]);
 }
 

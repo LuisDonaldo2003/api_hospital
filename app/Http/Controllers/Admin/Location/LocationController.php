@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin\Location;
 
 use App\Models\Location;
+use App\Models\PriorityLocation;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
 
 class LocationController extends Controller
 {
@@ -28,39 +30,90 @@ class LocationController extends Controller
 
         $searchTerm = trim($request->search);
         
-        // Estados prioritarios (Guerrero y estados colindantes)
-        $priorityStates = [
-            'Guerrero' => 1,
-            'Michoacán' => 2,
-            'México' => 3,
-            'Morelos' => 4,
-            'Puebla' => 5,
-            'Oaxaca' => 6
-        ];
-
         // Normalizar término de búsqueda (quitar acentos y convertir a minúsculas)
         $normalizedSearchTerm = $this->normalizeText($searchTerm);
         
-        // Obtener todas las localidades que podrían coincidir
+        // Cache key para búsquedas frecuentes
+        $cacheKey = 'location_search_' . md5($normalizedSearchTerm);
+        
+        // Intentar obtener desde cache primero (cachear por 5 minutos)
+        $results = Cache::remember($cacheKey, 300, function () use ($searchTerm, $normalizedSearchTerm) {
+            return $this->performOptimizedSearch($searchTerm, $normalizedSearchTerm);
+        });
+
+        return response()->json($results);
+    }
+
+    /**
+     * Búsqueda optimizada usando la tabla de localidades prioritarias
+     */
+    private function performOptimizedSearch($searchTerm, $normalizedSearchTerm)
+    {
+        // Primero buscar en localidades prioritarias (más rápido)
+        $priorityResults = PriorityLocation::where(function ($query) use ($searchTerm, $normalizedSearchTerm) {
+                $query->where('location_name', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('normalized_name', 'LIKE', "%{$normalizedSearchTerm}%");
+            })
+            ->orderBy('priority_level', 'asc')
+            ->orderBy('location_name', 'asc')
+            ->limit(15)
+            ->get()
+            ->map(function ($location) use ($searchTerm, $normalizedSearchTerm) {
+                return [
+                    'id' => $location->location_id,
+                    'name' => $location->location_name,
+                    'display_text' => $location->display_text,
+                    'municipality_id' => $location->municipality_id,
+                    'municipality_name' => $location->municipality_name,
+                    'state_id' => $location->state_id,
+                    'state_name' => $location->state_name,
+                    'priority' => $location->priority_level,
+                    'score' => $this->calculateRelevanceScore($location->location_name, $searchTerm, $normalizedSearchTerm, $location->priority_level),
+                    'is_priority' => true
+                ];
+            });
+
+        // Si tenemos suficientes resultados prioritarios, devolverlos
+        if ($priorityResults->count() >= 10) {
+            return $priorityResults->sortBy('score')->take(20)->values();
+        }
+
+        // Completar con búsqueda general si necesitamos más resultados
+        $additionalResults = $this->searchNonPriorityLocations($searchTerm, $normalizedSearchTerm, 20 - $priorityResults->count());
+        
+        // Combinar resultados
+        $allResults = $priorityResults->concat($additionalResults);
+        
+        return $allResults->sortBy('score')->take(20)->values();
+    }
+
+    /**
+     * Búsqueda en localidades no prioritarias
+     */
+    private function searchNonPriorityLocations($searchTerm, $normalizedSearchTerm, $limit)
+    {
+        // Estados prioritarios para excluir de esta búsqueda
+        $priorityStateIds = [12, 16, 15, 17, 21, 20]; // Guerrero, Michoacán, México, Morelos, Puebla, Oaxaca
+        
         $locations = Location::with(['municipality.state'])
+            ->whereHas('municipality.state', function ($query) use ($priorityStateIds) {
+                $query->whereNotIn('id', $priorityStateIds);
+            })
+            ->where(function ($query) use ($searchTerm) {
+                $query->where('name', 'LIKE', "%{$searchTerm}%");
+            })
             ->select('id', 'name', 'municipality_id')
+            ->limit($limit * 2) // Obtener más para filtrar después
             ->get()
             ->filter(function ($location) use ($searchTerm, $normalizedSearchTerm) {
-                $locationName = $location->name;
-                $locationNormalized = $this->normalizeText($locationName);
+                $locationNormalized = $this->normalizeText($location->name);
                 
-                // Búsqueda flexible: exacta, contiene, o sin acentos
-                return stripos($locationName, $searchTerm) !== false ||
+                // Búsqueda flexible
+                return stripos($location->name, $searchTerm) !== false ||
                        stripos($locationNormalized, $normalizedSearchTerm) !== false ||
                        $this->similarityMatch($locationNormalized, $normalizedSearchTerm);
             })
-            ->map(function ($location) use ($priorityStates, $searchTerm, $normalizedSearchTerm) {
-                $stateName = $location->municipality->state->name;
-                $priority = $priorityStates[$stateName] ?? 99;
-                
-                // Calcular score de relevancia
-                $score = $this->calculateRelevanceScore($location->name, $searchTerm, $normalizedSearchTerm, $priority);
-                
+            ->map(function ($location) use ($searchTerm, $normalizedSearchTerm) {
                 return [
                     'id' => $location->id,
                     'name' => $location->name,
@@ -71,16 +124,50 @@ class LocationController extends Controller
                     'municipality_name' => $location->municipality->name,
                     'state_id' => $location->municipality->state->id,
                     'state_name' => $location->municipality->state->name,
-                    'score' => $score,
-                    'priority' => $priority
+                    'priority' => 99, // Baja prioridad
+                    'score' => $this->calculateRelevanceScore($location->name, $searchTerm, $normalizedSearchTerm, 99),
+                    'is_priority' => false
                 ];
             })
-            // Ordenar por score (menor score = mayor relevancia)
-            ->sortBy('score')
-            ->take(20)
-            ->values();
+            ->take($limit);
 
-        return response()->json($locations);
+        return $locations;
+    }
+
+    /**
+     * Endpoint adicional para búsqueda rápida solo en estados prioritarios
+     */
+    public function searchPriorityOnly(Request $request)
+    {
+        $request->validate([
+            'search' => 'required|string|min:2|max:100'
+        ]);
+
+        $searchTerm = trim($request->search);
+        $normalizedSearchTerm = $this->normalizeText($searchTerm);
+        
+        $results = PriorityLocation::where(function ($query) use ($searchTerm, $normalizedSearchTerm) {
+                $query->where('location_name', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('normalized_name', 'LIKE', "%{$normalizedSearchTerm}%");
+            })
+            ->orderBy('priority_level', 'asc')
+            ->orderBy('location_name', 'asc')
+            ->limit(20)
+            ->get()
+            ->map(function ($location) {
+                return [
+                    'id' => $location->location_id,
+                    'name' => $location->location_name,
+                    'display_text' => $location->display_text,
+                    'municipality_id' => $location->municipality_id,
+                    'municipality_name' => $location->municipality_name,
+                    'state_id' => $location->state_id,
+                    'state_name' => $location->state_name,
+                    'priority' => $location->priority_level
+                ];
+            });
+
+        return response()->json($results);
     }
 
     /**
