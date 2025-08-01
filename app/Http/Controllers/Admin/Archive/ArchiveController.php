@@ -153,10 +153,38 @@ class ArchiveController extends Controller
             'admission_date' => 'nullable|date',
             'address' => 'nullable|string|max:150',
             'location_id' => 'nullable|integer|exists:locations,id',
+            'location_name' => 'nullable|string|max:100', // Para texto libre
             'trial304' => 'nullable|string|max:1'
         ]);
 
-        $archive = Archive::create($request->all());
+        $data = $request->all();
+
+        // Si se envió location_name pero no location_id, intentar crear o encontrar la localidad
+        if (!$request->location_id && $request->location_name) {
+            $locationName = trim($request->location_name);
+            
+            // Buscar si ya existe una localidad con ese nombre
+            $location = Location::where('name', 'LIKE', $locationName)->first();
+            
+            if (!$location) {
+                // Si no existe, crear una nueva localidad genérica
+                // Se asignará a un municipio por defecto (puede ser configurado)
+                $defaultMunicipalityId = 1; // Configurar según necesidades
+                
+                $location = Location::create([
+                    'name' => $locationName,
+                    'municipality_id' => $defaultMunicipalityId,
+                    'status' => true
+                ]);
+            }
+            
+            $data['location_id'] = $location->id;
+        }
+
+        // Remover location_name del array antes de crear el registro
+        unset($data['location_name']);
+
+        $archive = Archive::create($data);
 
         return response()->json([
             'message' => 'Registro creado correctamente.',
