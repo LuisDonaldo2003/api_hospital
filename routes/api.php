@@ -81,6 +81,7 @@ Route::group([
     Route::get('locations', [LocationController::class, 'byMunicipality']);
     Route::get('locations/search', [LocationController::class, 'searchByName']);
     Route::get('locations/search-priority', [LocationController::class, 'searchPriorityOnly']);
+    Route::get('locations/auto-detect', [LocationController::class, 'autoDetectLocation']);
 
     // Recursos principales
     Route::resource("archives", ArchiveController::class);
