@@ -159,26 +159,32 @@ class ArchiveController extends Controller
 
         $data = $request->all();
 
-        // Si se envió location_name pero no location_id, intentar crear o encontrar la localidad
+        // Si se envió location_name pero no location_id, usar mapeo inteligente
         if (!$request->location_id && $request->location_name) {
             $locationName = trim($request->location_name);
             
-            // Buscar si ya existe una localidad con ese nombre
-            $location = Location::where('name', 'LIKE', $locationName)->first();
-            
-            if (!$location) {
-                // Si no existe, crear una nueva localidad genérica
-                // Se asignará a un municipio por defecto (puede ser configurado)
-                $defaultMunicipalityId = 1; // Configurar según necesidades
+            try {
+                // Usar el sistema de mapeo inteligente de localidades
+                $mappedLocation = $this->findOrCreateLocationIntelligently($locationName);
                 
-                $location = Location::create([
-                    'name' => $locationName,
-                    'municipality_id' => $defaultMunicipalityId,
-                    'status' => true
-                ]);
+                if ($mappedLocation) {
+                    $data['location_id'] = $mappedLocation['id'];
+                } else {
+                    // Si no se puede mapear, usar localidad genérica sin status
+                    $genericLocation = Location::firstOrCreate(
+                        ['name' => $locationName],
+                        ['municipality_id' => 1] // Solo campos esenciales
+                    );
+                    $data['location_id'] = $genericLocation->id;
+                }
+            } catch (\Exception $e) {
+                // En caso de error, crear localidad básica
+                $genericLocation = Location::firstOrCreate(
+                    ['name' => $locationName],
+                    ['municipality_id' => 1]
+                );
+                $data['location_id'] = $genericLocation->id;
             }
-            
-            $data['location_id'] = $location->id;
         }
 
         // Remover location_name del array antes de crear el registro
@@ -325,5 +331,175 @@ class ArchiveController extends Controller
             return response()->json(['message' => 'Archivo no encontrado'], 404);
         }
         return Storage::disk('public')->download($path);
+    }
+
+    /**
+     * Endpoint de prueba para verificar mapeo de localidades
+     */
+    public function testLocationMapping(Request $request)
+    {
+        $request->validate([
+            'location_text' => 'required|string|max:255'
+        ]);
+
+        $locationText = trim($request->location_text);
+        
+        try {
+            $mappedLocation = $this->findOrCreateLocationIntelligently($locationText);
+            
+            return response()->json([
+                'success' => true,
+                'original_text' => $locationText,
+                'mapped_location' => $mappedLocation,
+                'message' => $mappedLocation ? 'Localidad encontrada/mapeada correctamente' : 'No se pudo mapear la localidad'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'original_text' => $locationText,
+                'error' => $e->getMessage(),
+                'message' => 'Error en el mapeo de localidad'
+            ], 500);
+        }
+    }
+
+    /**
+     * Mapeo inteligente para localidades con entrada de texto plano
+     * Maneja las variaciones comunes encontradas en datos legacy como hospital.sql
+     */
+    private function findOrCreateLocationIntelligently($locationText)
+    {
+        // Mapeo manual para casos específicos encontrados en hospital.sql
+        $knownMappings = [
+            // Casos específicos de localidades problemáticas
+            'jario pantoja' => 'jario y pantoja',
+            'cd altamirano' => 'ciudad altamirano',
+            'cd altamirano gro' => 'ciudad altamirano',
+            'c altamirano' => 'ciudad altamirano',
+            'cetina' => 'centia',
+            'changata gro' => 'changata',
+            'ixtapilla gro' => 'ixtapilla',
+            'coyuca de catalan' => 'coyuca de catalán',
+            'tlapehuala' => 'tlapehuala',
+            'nuevo galeana' => 'nuevo galeana',
+            'cerro verde' => 'cerro verde',
+            'las querendas' => 'las querendas',
+            'puerto del oro' => 'puerto del oro',
+            'san cristobal' => 'san cristóbal',
+            'el timbiriche' => 'el timbiriche',
+            'san antonio de las huertas' => 'san antonio de las huertas',
+            'arroyo grande' => 'arroyo grande',
+            'tanganhuato' => 'tanganhuato',
+            'san juan mina' => 'san juan mina',
+            'chacamero grande' => 'chacamero grande',
+            'placeres del oro' => 'placeres del oro',
+            'san mateo' => 'san mateo',
+            
+            // Casos con estado incluido en el nombre
+            'los pozos gro' => 'los pozos',
+            
+            // Abreviaciones comunes
+            'sn' => 'san',
+            'sta' => 'santa',
+            'sto' => 'santo',
+        ];
+
+        // Normalizar texto de entrada
+        $normalizedLocation = $this->normalizeLocationText($locationText);
+        
+        // Verificar mapeo manual primero
+        $searchKey = strtolower($normalizedLocation);
+        if (isset($knownMappings[$searchKey])) {
+            $normalizedLocation = $knownMappings[$searchKey];
+        }
+
+        // Intentar encontrar la localidad usando la API de búsqueda inteligente
+        $locationController = app(\App\Http\Controllers\Admin\Location\LocationController::class);
+        
+        // Crear request simulado para usar el método autoDetectLocation
+        $fakeRequest = new \Illuminate\Http\Request(['search' => $normalizedLocation]);
+        $result = $locationController->autoDetectLocation($fakeRequest);
+        $resultData = $result->getData();
+
+        if ($resultData->success && isset($resultData->location)) {
+            return [
+                'id' => $resultData->location->id,
+                'name' => $resultData->location->name,
+                'display_text' => $resultData->location->display_text,
+                'municipality_id' => $resultData->location->municipality_id,
+                'municipality_name' => $resultData->location->municipality_name,
+                'state_id' => $resultData->location->state_id,
+                'state_name' => $resultData->location->state_name,
+            ];
+        }
+
+        // Si no se encuentra con auto-detección, buscar manualmente en BD
+        return $this->searchLocationManually($normalizedLocation);
+    }
+
+    /**
+     * Normaliza texto de localidad eliminando sufijos de estado y limpiando formato
+     */
+    private function normalizeLocationText($text)
+    {
+        $text = trim(strtolower($text));
+        
+        // Remover sufijos de estado comunes
+        $stateSuffixes = [' gro', ' guerrero', ' mich', ' michoacan', ' mex', ' mexico'];
+        foreach ($stateSuffixes as $suffix) {
+            if (str_ends_with($text, $suffix)) {
+                $text = trim(substr($text, 0, -strlen($suffix)));
+            }
+        }
+        
+        // Expandir abreviaciones básicas
+        $abbreviations = [
+            'cd' => 'ciudad',
+            'c' => 'ciudad',
+            'sn' => 'san',
+            'sta' => 'santa',
+            'sto' => 'santo',
+        ];
+        
+        $words = explode(' ', $text);
+        $expandedWords = [];
+        
+        foreach ($words as $index => $word) {
+            if ($word === 'c' && $index === 0) {
+                $expandedWords[] = 'ciudad';
+            } elseif (isset($abbreviations[$word])) {
+                $expandedWords[] = $abbreviations[$word];
+            } else {
+                $expandedWords[] = $word;
+            }
+        }
+        
+        return implode(' ', $expandedWords);
+    }
+
+    /**
+     * Búsqueda manual en base de datos como fallback
+     */
+    private function searchLocationManually($locationText)
+    {
+        // Buscar en tabla locations directamente
+        $location = Location::with(['municipality.state'])
+            ->where('name', 'ILIKE', $locationText)
+            ->orWhere('name', 'ILIKE', "%{$locationText}%")
+            ->first();
+            
+        if ($location) {
+            return [
+                'id' => $location->id,
+                'name' => $location->name,
+                'display_text' => $location->name . ' - ' . $location->municipality->name . ', ' . $location->municipality->state->name,
+                'municipality_id' => $location->municipality_id,
+                'municipality_name' => $location->municipality->name,
+                'state_id' => $location->municipality->state->id,
+                'state_name' => $location->municipality->state->name,
+            ];
+        }
+
+        return null;
     }
 }

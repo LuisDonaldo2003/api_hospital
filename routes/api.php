@@ -71,6 +71,9 @@ Route::group([
 
     // ⚠️ Deprecado: antes devolvía genders y estados juntos
     Route::get("archives/config", [ArchiveController::class, "config"]);
+    
+    // Endpoint de prueba para mapeo de localidades
+    Route::post("archives/test-location-mapping", [ArchiveController::class, "testLocationMapping"]);
 
     // ✅ NUEVOS ENDPOINTS
     Route::get('genders', [ArchiveController::class, 'genders']);
@@ -82,6 +85,7 @@ Route::group([
     Route::get('locations/search', [LocationController::class, 'searchByName']);
     Route::get('locations/search-priority', [LocationController::class, 'searchPriorityOnly']);
     Route::get('locations/auto-detect', [LocationController::class, 'autoDetectLocation']);
+    Route::post('locations/find-or-create', [LocationController::class, 'findOrCreateLocationFromText']);
 
     // Recursos principales
     Route::resource("archives", ArchiveController::class);

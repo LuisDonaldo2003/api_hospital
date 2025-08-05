@@ -8,6 +8,12 @@ class Location extends Model
 {
     protected $table = 'locations';
 
+    protected $fillable = [
+        'name',
+        'municipality_id',
+        'status',
+    ];
+
     public function municipality()
     {
         return $this->belongsTo(Municipality::class);

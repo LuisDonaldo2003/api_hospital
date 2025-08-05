@@ -125,6 +125,90 @@ class LocationController extends Controller
     }
 
     /**
+     * Expande abreviaciones comunes antes de la búsqueda
+     */
+    private function expandAbbreviations($text)
+    {
+        $text = strtolower(trim($text));
+        
+        // MAPEOS ESPECÍFICOS PRIMERO (casos completos)
+        $specificMappings = [
+            'jario pantoja' => 'jario y pantoja',
+            'cd altamirano' => 'ciudad altamirano',
+            'c altamirano' => 'ciudad altamirano',
+            'ciu alta' => 'ciudad altamirano',
+            'altamirano' => 'ciudad altamirano',
+            'cetina' => 'centia',
+            'changata gro' => 'changata',
+            'ixtapilla gro' => 'ixtapilla',
+            'coyuca de catalan' => 'coyuca de catalán',
+            'el guayavo' => 'el guayabo',
+            'los pozos gro' => 'los pozos',
+        ];
+        
+        // Verificar mapeos específicos primero
+        if (isset($specificMappings[$text])) {
+            return $specificMappings[$text];
+        }
+        
+        // ABREVIACIONES PALABRA POR PALABRA
+        $abbreviations = [
+            // Abreviaciones geográficas comunes
+            'cd' => 'ciudad',
+            'c' => 'ciudad', // Solo cuando está al inicio
+            'nte' => 'norte',
+            'norte' => 'norte',
+            'ote' => 'oriente',
+            'oriente' => 'oriente',
+            'pte' => 'poniente',
+            'poniente' => 'poniente',
+            'sur' => 'sur',
+            'cto' => 'centro',
+            'centro' => 'centro',
+            'col' => 'colonia',
+            'colonia' => 'colonia',
+            'frac' => 'fraccionamiento',
+            'fracc' => 'fraccionamiento',
+            'fraccionamiento' => 'fraccionamiento',
+            'unidad' => 'unidad',
+            'unid' => 'unidad',
+            'barrio' => 'barrio',
+            'bo' => 'barrio',
+            'san' => 'san',
+            'santa' => 'santa',
+            'santo' => 'santo',
+            'sta' => 'santa',
+            'sto' => 'santo',
+            'sn' => 'san',
+            // Números comunes
+            '1' => 'uno',
+            '2' => 'dos',
+            '3' => 'tres',
+            '4' => 'cuatro',
+            '5' => 'cinco',
+            '1a' => 'primera',
+            '2a' => 'segunda',
+            '3a' => 'tercera'
+        ];
+
+        $words = explode(' ', $text);
+        $expandedWords = [];
+
+        foreach ($words as $index => $word) {
+            // Manejar abreviación "c" solo al inicio como "ciudad"
+            if ($word === 'c' && $index === 0) {
+                $expandedWords[] = 'ciudad';
+            } elseif (isset($abbreviations[$word])) {
+                $expandedWords[] = $abbreviations[$word];
+            } else {
+                $expandedWords[] = $word;
+            }
+        }
+
+        return implode(' ', $expandedWords);
+    }
+
+    /**
      * Limpia artículos, preposiciones y palabras comunes para mejorar la búsqueda
      */
     private function cleanCommonWords($text)
@@ -280,24 +364,36 @@ class LocationController extends Controller
         ]);
 
         $searchTerm = trim($request->search);
-        $normalizedSearchTerm = $this->normalizeText($searchTerm);
+        
+        // 1. Expandir abreviaciones ANTES de normalizar
+        $expandedSearchTerm = $this->expandAbbreviations($searchTerm);
+        
+        // 2. Normalizar y limpiar
+        $normalizedSearchTerm = $this->normalizeText($expandedSearchTerm);
         $cleanedSearchTerm = $this->cleanCommonWords($normalizedSearchTerm);
 
         $bestMatch = null;
         $bestScore = PHP_INT_MAX;
         $confidenceLevel = 0;
 
+        // También buscar con el término original (sin expandir) para comparar
+        $originalNormalized = $this->normalizeText($searchTerm);
+        $originalCleaned = $this->cleanCommonWords($originalNormalized);
+
         // 1. Buscar primero en estados SUPER PRIORITARIOS (Guerrero y Michoacán)
         $superPriorityResults = PriorityLocation::whereIn('state_id', [12, 16]) // Guerrero y Michoacán
-            ->where(function ($query) use ($searchTerm, $normalizedSearchTerm, $cleanedSearchTerm) {
+            ->where(function ($query) use ($searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $originalNormalized, $originalCleaned) {
                 $query->whereRaw('LOWER(normalized_name) like ?', ["%" . strtolower($cleanedSearchTerm) . "%"])
                       ->orWhereRaw('LOWER(location_name) like ?', ["%" . strtolower($searchTerm) . "%"])
-                      ->orWhereRaw('LOWER(display_text) like ?', ["%" . strtolower($searchTerm) . "%"]);
+                      ->orWhereRaw('LOWER(location_name) like ?', ["%" . strtolower($expandedSearchTerm) . "%"])
+                      ->orWhereRaw('LOWER(display_text) like ?', ["%" . strtolower($searchTerm) . "%"])
+                      ->orWhereRaw('LOWER(display_text) like ?', ["%" . strtolower($expandedSearchTerm) . "%"])
+                      ->orWhereRaw('LOWER(normalized_name) like ?', ["%" . strtolower($originalCleaned) . "%"]);
             })
             ->get();
 
         foreach ($superPriorityResults as $location) {
-            $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $normalizedSearchTerm, $cleanedSearchTerm, 1); // Prioridad máxima
+            $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, 1); // Prioridad máxima
             if ($score < $bestScore) {
                 $bestScore = $score;
                 $bestMatch = $location;
@@ -316,7 +412,7 @@ class LocationController extends Controller
                 ->get();
 
             foreach ($otherPriorityResults as $location) {
-                $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $location->priority_level);
+                $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $location->priority_level);
                 if ($score < $bestScore) {
                     $bestScore = $score;
                     $bestMatch = $location;
@@ -337,7 +433,7 @@ class LocationController extends Controller
 
             foreach ($allResults as $location) {
                 $statePriority = $this->getStatePriority($location->municipality->state->id);
-                $score = $this->calculateAdvancedScore($location->name, $searchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $statePriority);
+                $score = $this->calculateAdvancedScore($location->name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $statePriority);
                 if ($score < $bestScore) {
                     $bestScore = $score;
                     $bestMatch = $location;
@@ -492,9 +588,9 @@ class LocationController extends Controller
     }
 
     /**
-     * Cálculo avanzado de score para detección automática
+     * Cálculo avanzado de score para detección automática con soporte para abreviaciones
      */
-    private function calculateAdvancedScore($locationName, $searchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $statePriority)
+    private function calculateAdvancedScore($locationName, $originalSearchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $statePriority)
     {
         $locationNormalized = $this->normalizeText($locationName);
         $locationCleaned = $this->cleanCommonWords($locationNormalized);
@@ -502,75 +598,101 @@ class LocationController extends Controller
         // Bonus por estado prioritario (Guerrero y Michoacán tienen bonus extra)
         $priorityBonus = 0;
         if ($statePriority === 1) { // Guerrero/Michoacán
-            $priorityBonus = -2000;
+            $priorityBonus = -3000;
         } elseif ($statePriority <= 3) { // Otros estados prioritarios
-            $priorityBonus = -1000;
+            $priorityBonus = -1500;
         }
         
         $score = $statePriority * 500 + $priorityBonus;
-        
-        // 1. Coincidencia EXACTA (mejor score posible)
-        if (strtolower($locationName) === strtolower($searchTerm)) {
-            return $score + 1;
+
+        // BONUS ESPECIAL: Penalizar localidades con números cuando hay alternativas más exactas
+        if (preg_match('/\b(uno|dos|tres|cuatro|cinco|1|2|3|4|5)\b/i', $locationName)) {
+            $score += 200; // Penalización por tener números
+        }
+
+        // 1. Coincidencias EXACTAS con término expandido (máxima prioridad)
+        if (strtolower($locationName) === strtolower($expandedSearchTerm)) {
+            return $score - 500; // Bonus extra para coincidencia exacta expandida
         }
         
         if ($locationNormalized === $normalizedSearchTerm) {
-            return $score + 2;
+            return $score - 400;
         }
         
         if ($locationCleaned === $cleanedSearchTerm) {
-            return $score + 3;
+            return $score - 300;
+        }
+
+        // 2. Coincidencias exactas con término original
+        if (strtolower($locationName) === strtolower($originalSearchTerm)) {
+            return $score + 1;
         }
         
-        // 2. Empieza con el término (muy bueno)
-        if (stripos($locationName, $searchTerm) === 0) {
-            return $score + 10;
+        // 3. Empieza con el término expandido (muy bueno)
+        if (stripos($locationName, $expandedSearchTerm) === 0) {
+            return $score + 5;
         }
         
         if (strpos($locationNormalized, $normalizedSearchTerm) === 0) {
-            return $score + 15;
+            return $score + 10;
         }
         
         if (strpos($locationCleaned, $cleanedSearchTerm) === 0) {
+            return $score + 15;
+        }
+
+        // 4. Empieza con término original
+        if (stripos($locationName, $originalSearchTerm) === 0) {
             return $score + 20;
         }
         
-        // 3. Contiene el término completo
-        if (stripos($locationName, $searchTerm) !== false) {
-            return $score + 30;
+        // 5. Contiene el término expandido completo
+        if (stripos($locationName, $expandedSearchTerm) !== false) {
+            return $score + 25;
         }
         
         if (strpos($locationNormalized, $normalizedSearchTerm) !== false) {
-            return $score + 35;
+            return $score + 30;
         }
         
         if (strpos($locationCleaned, $cleanedSearchTerm) !== false) {
+            return $score + 35;
+        }
+
+        // 6. Contiene término original
+        if (stripos($locationName, $originalSearchTerm) !== false) {
             return $score + 40;
         }
         
-        // 4. Similitud fuzzy (errores de escritura)
+        // 7. Similitud fuzzy con término expandido (errores de escritura)
         $distance = levenshtein($cleanedSearchTerm, $locationCleaned);
         if ($distance <= 2) {
-            return $score + 50 + ($distance * 10);
+            return $score + 45 + ($distance * 5);
         }
         
-        // 5. Coincidencia por iniciales
+        // 8. Coincidencia por iniciales del término expandido
         $searchInitials = implode('', array_map(fn($w) => $w[0] ?? '', explode(' ', $cleanedSearchTerm)));
         $locationInitials = implode('', array_map(fn($w) => $w[0] ?? '', explode(' ', $locationCleaned)));
         if ($searchInitials === $locationInitials && strlen($searchInitials) > 1) {
-            return $score + 70;
+            return $score + 60;
         }
         
-        // 6. Alias manuales
+        // 9. Alias manuales específicos para casos problemáticos
         $alias = [
             'jario pantoja' => 'jario y pantoja',
             'el guayavo' => 'el guayabo',
             'cetina' => 'centia',
-            // Puedes agregar más casos frecuentes aquí
+            'altamirano' => 'ciudad altamirano', // Nuevo alias específico
+            'cd altamirano' => 'ciudad altamirano',
+            'c altamirano' => 'ciudad altamirano'
         ];
         
-        if (isset($alias[$cleanedSearchTerm]) && $locationCleaned === $this->normalizeText($alias[$cleanedSearchTerm])) {
-            return $score + 25;
+        $searchKey = strtolower($originalSearchTerm);
+        if (isset($alias[$searchKey])) {
+            $aliasNormalized = $this->normalizeText($alias[$searchKey]);
+            if ($locationNormalized === $aliasNormalized) {
+                return $score - 100; // Bonus extra para alias específicos
+            }
         }
         
         // Score muy alto para resultados irrelevantes
@@ -623,5 +745,181 @@ class LocationController extends Controller
         ];
         
         return $priorities[$stateId] ?? 10; // Estados no prioritarios
+    }
+
+    /**
+     * Mapeo inteligente para localidades con entrada de texto plano
+     * Maneja las variaciones comunes encontradas en datos legacy
+     */
+    public function findOrCreateLocationFromText(Request $request)
+    {
+        $request->validate([
+            'location_text' => 'required|string|max:255',
+            'municipality_text' => 'nullable|string|max:255',
+            'state_text' => 'nullable|string|max:255',
+        ]);
+
+        $locationText = trim($request->location_text);
+        $municipalityText = trim($request->municipality_text ?? '');
+        $stateText = trim($request->state_text ?? '');
+
+        // Mapeo manual para casos específicos encontrados en hospital.sql
+        $knownMappings = [
+            // Casos específicos de localidades problemáticas
+            'jario pantoja' => 'jario y pantoja',
+            'cd altamirano' => 'ciudad altamirano',
+            'cd altamirano gro' => 'ciudad altamirano',
+            'c altamirano' => 'ciudad altamirano',
+            'cetina' => 'centia',
+            'changata gro' => 'changata',
+            'ixtapilla gro' => 'ixtapilla',
+            'coyuca de catalan' => 'coyuca de catalán',
+            'tlapehuala' => 'tlapehuala',
+            
+            // Casos con estado incluido en el nombre
+            'los pozos gro' => 'los pozos',
+            
+            // Abreviaciones comunes
+            'sn' => 'san',
+            'sta' => 'santa',
+            'sto' => 'santo',
+        ];
+
+        // Normalizar texto de entrada
+        $normalizedLocation = $this->normalizeLocationText($locationText);
+        
+        // Verificar mapeo manual primero
+        if (isset($knownMappings[strtolower($normalizedLocation)])) {
+            $normalizedLocation = $knownMappings[strtolower($normalizedLocation)];
+        }
+
+        // Intentar encontrar la localidad en el sistema
+        $searchResult = $this->searchLocationIntelligently($normalizedLocation, $municipalityText, $stateText);
+
+        if ($searchResult) {
+            return response()->json([
+                'success' => true,
+                'location' => $searchResult,
+                'action' => 'found',
+                'original_text' => $locationText,
+                'normalized_text' => $normalizedLocation
+            ]);
+        }
+
+        // Si no se encuentra, crear una nueva entrada temporal o devolver sugerencias
+        return response()->json([
+            'success' => false,
+            'message' => 'Localidad no encontrada en el sistema',
+            'suggestions' => $this->generateLocationSuggestions($normalizedLocation),
+            'original_text' => $locationText,
+            'normalized_text' => $normalizedLocation
+        ]);
+    }
+
+    /**
+     * Normaliza texto de localidad eliminando sufijos de estado y limpiando formato
+     */
+    private function normalizeLocationText($text)
+    {
+        $text = trim(strtolower($text));
+        
+        // Remover sufijos de estado comunes
+        $stateSuffixes = [' gro', ' guerrero', ' mich', ' michoacan', ' mex', ' mexico'];
+        foreach ($stateSuffixes as $suffix) {
+            if (str_ends_with($text, $suffix)) {
+                $text = trim(substr($text, 0, -strlen($suffix)));
+            }
+        }
+        
+        // Expandir abreviaciones
+        $text = $this->expandAbbreviations($text);
+        
+        return $text;
+    }
+
+    /**
+     * Búsqueda inteligente considerando variaciones y contexto
+     */
+    private function searchLocationIntelligently($locationText, $municipalityText = '', $stateText = '')
+    {
+        // Priorizar estados de Guerrero y Michoacán
+        $priorityStateIds = [12, 16]; // Guerrero, Michoacán
+        
+        // Búsqueda exacta primero
+        $exactMatch = PriorityLocation::where('location_name', 'ILIKE', $locationText)
+            ->when(!empty($municipalityText), function ($query) use ($municipalityText) {
+                return $query->where('municipality_name', 'ILIKE', "%{$municipalityText}%");
+            })
+            ->when(!empty($stateText), function ($query) use ($stateText) {
+                return $query->where('state_name', 'ILIKE', "%{$stateText}%");
+            })
+            ->orderByRaw('CASE WHEN state_id IN (' . implode(',', $priorityStateIds) . ') THEN 0 ELSE 1 END')
+            ->first();
+
+        if ($exactMatch) {
+            return $this->formatLocationResponse($exactMatch);
+        }
+
+        // Búsqueda fuzzy con normalización
+        $normalizedSearch = $this->normalizeText($locationText);
+        $cleanedSearch = $this->cleanCommonWords($normalizedSearch);
+
+        $fuzzyMatch = PriorityLocation::whereRaw('LOWER(normalized_name) LIKE ?', ["%{$cleanedSearch}%"])
+            ->when(!empty($municipalityText), function ($query) use ($municipalityText) {
+                return $query->where('municipality_name', 'ILIKE', "%{$municipalityText}%");
+            })
+            ->orderByRaw('CASE WHEN state_id IN (' . implode(',', $priorityStateIds) . ') THEN 0 ELSE 1 END')
+            ->orderBy('location_name')
+            ->first();
+
+        if ($fuzzyMatch) {
+            return $this->formatLocationResponse($fuzzyMatch);
+        }
+
+        return null;
+    }
+
+    /**
+     * Genera sugerencias para localidades no encontradas
+     */
+    private function generateLocationSuggestions($locationText)
+    {
+        $suggestions = PriorityLocation::whereRaw('LOWER(location_name) LIKE ?', ["%{$locationText}%"])
+            ->orWhereRaw('LOWER(normalized_name) LIKE ?', ["%{$locationText}%"])
+            ->limit(5)
+            ->get()
+            ->map(function ($location) use ($locationText) {
+                $similarity = similar_text(strtolower($location->location_name), strtolower($locationText));
+                return [
+                    'id' => $location->location_id,
+                    'name' => $location->location_name,
+                    'display_text' => $location->display_text,
+                    'municipality_id' => $location->municipality_id,
+                    'municipality_name' => $location->municipality_name,
+                    'state_id' => $location->state_id,
+                    'state_name' => $location->state_name,
+                    'similarity' => $similarity
+                ];
+            })
+            ->sortByDesc('similarity')
+            ->values();
+
+        return $suggestions;
+    }
+
+    /**
+     * Formatea la respuesta de localidad encontrada
+     */
+    private function formatLocationResponse($location)
+    {
+        return [
+            'id' => $location->location_id,
+            'name' => $location->location_name,
+            'display_text' => $location->display_text,
+            'municipality_id' => $location->municipality_id,
+            'municipality_name' => $location->municipality_name,
+            'state_id' => $location->state_id,
+            'state_name' => $location->state_name,
+        ];
     }
 }
