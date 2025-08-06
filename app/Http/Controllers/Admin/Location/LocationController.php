@@ -354,8 +354,8 @@ class LocationController extends Controller
     }
 
     /**
-     * Detección automática de la mejor localidad
-     * Devuelve solo UNA localidad con alta confianza, priorizando Guerrero y Michoacán
+     * Detección automática de localidades con manejo de múltiples coincidencias
+     * Devuelve UNA localidad si hay alta confianza, o MÚLTIPLES si hay ambigüedad
      */
     public function autoDetectLocation(Request $request)
     {
@@ -372,9 +372,10 @@ class LocationController extends Controller
         $normalizedSearchTerm = $this->normalizeText($expandedSearchTerm);
         $cleanedSearchTerm = $this->cleanCommonWords($normalizedSearchTerm);
 
-        $bestMatch = null;
+        $allMatches = [];
         $bestScore = PHP_INT_MAX;
-        $confidenceLevel = 0;
+        $bestMatch = null;
+        $confidenceLevel = 0; // Inicializar variable
 
         // También buscar con el término original (sin expandir) para comparar
         $originalNormalized = $this->normalizeText($searchTerm);
@@ -391,6 +392,88 @@ class LocationController extends Controller
                       ->orWhereRaw('LOWER(normalized_name) like ?', ["%" . strtolower($originalCleaned) . "%"]);
             })
             ->get();
+
+        foreach ($superPriorityResults as $location) {
+            $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, 1);
+            $confidence = $this->calculateConfidence($score, 1);
+            
+            $allMatches[] = [
+                'location' => $this->formatPriorityLocationResponse($location),
+                'score' => $score,
+                'confidence' => $confidence,
+                'source' => 'priority_state'
+            ];
+            
+            if ($score < $bestScore) {
+                $bestScore = $score;
+            }
+        }
+
+        // 2. Buscar en otros estados prioritarios
+        $otherPriorityResults = PriorityLocation::whereNotIn('state_id', [12, 16])
+            ->where(function ($query) use ($searchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $expandedSearchTerm, $originalCleaned) {
+                $query->whereRaw('LOWER(normalized_name) like ?', ["%" . strtolower($cleanedSearchTerm) . "%"])
+                      ->orWhereRaw('LOWER(location_name) like ?', ["%" . strtolower($searchTerm) . "%"])
+                      ->orWhereRaw('LOWER(location_name) like ?', ["%" . strtolower($expandedSearchTerm) . "%"])
+                      ->orWhereRaw('LOWER(display_text) like ?', ["%" . strtolower($searchTerm) . "%"])
+                      ->orWhereRaw('LOWER(display_text) like ?', ["%" . strtolower($expandedSearchTerm) . "%"])
+                      ->orWhereRaw('LOWER(normalized_name) like ?', ["%" . strtolower($originalCleaned) . "%"]);
+            })
+            ->get();
+
+        foreach ($otherPriorityResults as $location) {
+            $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $location->priority_level);
+            $confidence = $this->calculateConfidence($score, $location->priority_level);
+            
+            $allMatches[] = [
+                'location' => $this->formatPriorityLocationResponse($location),
+                'score' => $score,
+                'confidence' => $confidence,
+                'source' => 'priority_other'
+            ];
+            
+            if ($score < $bestScore) {
+                $bestScore = $score;
+            }
+        }
+
+        // 3. SIEMPRE buscar en TODAS las localidades para incluir todos los estados
+        $allResults = Location::with(['municipality.state'])
+            ->where(function ($query) use ($searchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $expandedSearchTerm) {
+                $query->whereRaw('LOWER(name) like ?', ["%" . strtolower($searchTerm) . "%"])
+                      ->orWhereRaw('LOWER(name) like ?', ["%" . strtolower($expandedSearchTerm) . "%"])
+                      ->orWhereRaw('LOWER(name) like ?', ["%" . strtolower($cleanedSearchTerm) . "%"]);
+            })
+            ->limit(50) // Incrementar límite para incluir más estados
+            ->get();
+
+        foreach ($allResults as $location) {
+            $statePriority = $this->getStatePriority($location->municipality->state->id);
+            $score = $this->calculateAdvancedScore($location->name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, $statePriority);
+            $confidence = $this->calculateConfidence($score, $statePriority);
+            
+            // Evitar duplicados (comparar por ID)
+            $exists = false;
+            foreach ($allMatches as $match) {
+                if ($match['location']['id'] == $location->id) {
+                    $exists = true;
+                    break;
+                }
+            }
+            
+            if (!$exists) {
+                $allMatches[] = [
+                    'location' => $this->formatLocationResponse($location),
+                    'score' => $score,
+                    'confidence' => $confidence,
+                    'source' => 'general'
+                ];
+                
+                if ($score < $bestScore) {
+                    $bestScore = $score;
+                }
+            }
+        }
 
         foreach ($superPriorityResults as $location) {
             $score = $this->calculateAdvancedScore($location->location_name, $searchTerm, $expandedSearchTerm, $normalizedSearchTerm, $cleanedSearchTerm, 1); // Prioridad máxima
@@ -442,47 +525,106 @@ class LocationController extends Controller
             }
         }
 
-        // Solo devolver resultado si tenemos alta confianza (>= 75%)
-        if ($bestMatch && $confidenceLevel >= 75) {
-            if ($bestMatch instanceof \App\Models\PriorityLocation) {
-                return response()->json([
-                    'success' => true,
-                    'location' => [
-                        'id' => $bestMatch->location_id,
-                        'name' => $bestMatch->location_name,
-                        'display_text' => $bestMatch->display_text,
-                        'municipality_id' => $bestMatch->municipality_id,
-                        'municipality_name' => $bestMatch->municipality_name,
-                        'state_id' => $bestMatch->state_id,
-                        'state_name' => $bestMatch->state_name,
-                    ],
-                    'confidence' => $confidenceLevel,
-                    'score' => $bestScore
-                ]);
-            } else {
-                return response()->json([
-                    'success' => true,
-                    'location' => [
-                        'id' => $bestMatch->id,
-                        'name' => $bestMatch->name,
-                        'display_text' => $bestMatch->name . ' - ' . $bestMatch->municipality->name . ', ' . $bestMatch->municipality->state->name,
-                        'municipality_id' => $bestMatch->municipality->id,
-                        'municipality_name' => $bestMatch->municipality->name,
-                        'state_id' => $bestMatch->municipality->state->id,
-                        'state_name' => $bestMatch->municipality->state->name,
-                    ],
-                    'confidence' => $confidenceLevel,
-                    'score' => $bestScore
-                ]);
+        // Ordenar todas las coincidencias por score (mejor primero)
+        usort($allMatches, function($a, $b) {
+            return $a['score'] <=> $b['score'];
+        });
+
+        // Filtrar solo las coincidencias con confianza >= 60%
+        $validMatches = array_filter($allMatches, function($match) {
+            return $match['confidence'] >= 60;
+        });
+
+        if (empty($validMatches)) {
+            // No hay coincidencias suficientes
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró una localidad con suficiente confianza. Intenta ser más específico.',
+                'suggestions' => array_slice($allMatches, 0, 3) // Mostrar las 3 mejores aunque sean de baja confianza
+            ]);
+        }
+
+        // Analizar si hay múltiples coincidencias válidas
+        $bestMatch = $validMatches[0];
+        $hasMultipleGoodMatches = false;
+
+        // Verificar si hay múltiples coincidencias con scores similares o diferentes municipios
+        if (count($validMatches) > 1) {
+            $scoreDifference = $validMatches[1]['score'] - $bestMatch['score'];
+            
+            // Si la diferencia de score es pequeña (< 50 puntos) o hay coincidencias exactas en diferentes municipios
+            if ($scoreDifference < 50 || $this->hasExactMatchesInDifferentMunicipalities($validMatches, $searchTerm, $expandedSearchTerm)) {
+                $hasMultipleGoodMatches = true;
             }
         }
 
-        // No hay coincidencia suficiente
-        return response()->json([
-            'success' => false,
-            'message' => 'No se encontró una localidad con suficiente confianza. Intenta ser más específico.',
-            'confidence' => $confidenceLevel
-        ]);
+        if ($hasMultipleGoodMatches) {
+            // Ordenar por cercanía geográfica a Coyuca de Catalán antes de devolver opciones
+            usort($validMatches, function($a, $b) {
+                $priorityA = $this->calculateGeographicPriority($a['location']['municipality_name'], $a['location']['state_name']);
+                $priorityB = $this->calculateGeographicPriority($b['location']['municipality_name'], $b['location']['state_name']);
+                
+                // Si tienen la misma prioridad geográfica, ordenar por score
+                if ($priorityA === $priorityB) {
+                    return $a['score'] <=> $b['score'];
+                }
+                
+                return $priorityA <=> $priorityB;
+            });
+            
+            // Devolver múltiples opciones para que el usuario elija
+            $options = array_slice($validMatches, 0, 5); // Máximo 5 opciones
+            
+            return response()->json([
+                'success' => true,
+                'multiple_matches' => true,
+                'message' => 'Se encontraron múltiples localidades con ese nombre. Por favor, selecciona la correcta.',
+                'options' => array_map(function($match) {
+                    $geoPriority = $this->calculateGeographicPriority($match['location']['municipality_name'], $match['location']['state_name']);
+                    $proximityIndicator = '';
+                    
+                    // Agregar indicadores de cercanía
+                    if ($geoPriority <= 2) {
+                        $proximityIndicator = '🏠'; // Muy cerca (Coyuca de Catalán)
+                    } elseif ($geoPriority <= 7) {
+                        $proximityIndicator = '📍'; // Cerca (municipios vecinos)
+                    } elseif ($geoPriority <= 15) {
+                        $proximityIndicator = '⭐'; // Estado prioritario
+                    }
+                    
+                    return [
+                        'id' => $match['location']['id'],
+                        'name' => $match['location']['name'],
+                        'display_text' => $match['location']['display_text'],
+                        'municipality_id' => $match['location']['municipality_id'],
+                        'municipality_name' => $match['location']['municipality_name'],
+                        'state_id' => $match['location']['state_id'],
+                        'state_name' => $match['location']['state_name'],
+                        'confidence' => $match['confidence'],
+                        'priority_indicator' => $proximityIndicator,
+                        'geographic_priority' => $geoPriority
+                    ];
+                }, $options),
+                'search_term' => $searchTerm
+            ]);
+        } else {
+            // Una sola coincidencia clara - respuesta tradicional
+            return response()->json([
+                'success' => true,
+                'multiple_matches' => false,
+                'location' => [
+                    'id' => $bestMatch['location']['id'],
+                    'name' => $bestMatch['location']['name'],
+                    'display_text' => $bestMatch['location']['display_text'],
+                    'municipality_id' => $bestMatch['location']['municipality_id'],
+                    'municipality_name' => $bestMatch['location']['municipality_name'],
+                    'state_id' => $bestMatch['location']['state_id'],
+                    'state_name' => $bestMatch['location']['state_name'],
+                ],
+                'confidence' => $bestMatch['confidence'],
+                'score' => $bestMatch['score']
+            ]);
+        }
     }
 
     /**
@@ -704,12 +846,16 @@ class LocationController extends Controller
      */
     private function calculateConfidence($score, $statePriority)
     {
-        // Ajustar score base según prioridad
-        $baseScore = $statePriority * 500;
+        // Ajustar score base según prioridad (menos penalización para Michoacán)
+        $baseScore = $statePriority * 300; // Reducido de 500 a 300
         if ($statePriority === 1) {
-            $baseScore -= 2000; // Guerrero/Michoacán
-        } elseif ($statePriority <= 3) {
-            $baseScore -= 1000; // Otros prioritarios
+            $baseScore -= 1500; // Guerrero
+        } elseif ($statePriority === 2) {
+            $baseScore -= 1200; // Michoacán (menos penalización)
+        } elseif ($statePriority <= 5) {
+            $baseScore -= 800; // Otros prioritarios
+        } elseif ($statePriority <= 8) {
+            $baseScore -= 300; // Estados válidos (incluye otros de México)
         }
         
         $adjustedScore = $score - $baseScore;
@@ -731,20 +877,139 @@ class LocationController extends Controller
     }
 
     /**
+     * Verifica si hay coincidencias exactas en diferentes municipios
+     */
+    private function hasExactMatchesInDifferentMunicipalities($matches, $searchTerm, $expandedSearchTerm)
+    {
+        $exactMatches = [];
+        $searchLower = strtolower($searchTerm);
+        $expandedLower = strtolower($expandedSearchTerm);
+        
+        foreach ($matches as $match) {
+            $locationNameLower = strtolower($match['location']['name']);
+            
+            // Verificar coincidencia exacta
+            if ($locationNameLower === $searchLower || $locationNameLower === $expandedLower) {
+                $municipalityId = $match['location']['municipality_id'];
+                if (!isset($exactMatches[$municipalityId])) {
+                    $exactMatches[$municipalityId] = [];
+                }
+                $exactMatches[$municipalityId][] = $match;
+            }
+        }
+        
+        // Si hay coincidencias exactas en más de un municipio
+        return count($exactMatches) > 1;
+    }
+
+    /**
+     * Formatea respuesta de PriorityLocation
+     */
+    private function formatPriorityLocationResponse($location)
+    {
+        return [
+            'id' => $location->location_id,
+            'name' => $location->location_name,
+            'display_text' => $location->display_text,
+            'municipality_id' => $location->municipality_id,
+            'municipality_name' => $location->municipality_name,
+            'state_id' => $location->state_id,
+            'state_name' => $location->state_name,
+        ];
+    }
+
+    /**
      * Obtiene la prioridad de un estado
      */
     private function getStatePriority($stateId)
     {
         $priorities = [
-            12 => 1, // Guerrero
-            16 => 1, // Michoacán (mismo nivel que Guerrero)
+            12 => 1, // Guerrero - máxima prioridad
+            16 => 2, // Michoacán - segunda prioridad (vecino de Guerrero)
             15 => 3, // México
             17 => 4, // Morelos
             21 => 5, // Puebla
             20 => 5, // Oaxaca
         ];
         
-        return $priorities[$stateId] ?? 10; // Estados no prioritarios
+        return $priorities[$stateId] ?? 8; // Estados no prioritarios pero válidos
+    }
+
+    /**
+     * Calcula prioridad geográfica basada en cercanía a Coyuca de Catalán, Guerrero
+     * Prioriza localidades del mismo municipio, luego municipios cercanos, luego por estado
+     */
+    private function calculateGeographicPriority($municipalityName, $stateName)
+    {
+        $municipalityName = strtolower(trim($municipalityName));
+        $stateName = strtolower(trim($stateName));
+        
+        // Estados prioritarios antes que municipios específicos
+        if (strpos($stateName, 'michoacan') !== false || strpos($stateName, 'michoacán') !== false) {
+            return 8; // Michoacán como estado vecino prioritario
+        }
+        
+        // Solo aplicar ordenamiento detallado si es Guerrero
+        if (strpos($stateName, 'guerrero') === false) {
+            // Para otros estados (México, Morelos, etc.)
+            if (strpos($stateName, 'mexico') !== false || strpos($stateName, 'méxico') !== false) {
+                return 12; // Estado de México
+            }
+            if (strpos($stateName, 'morelos') !== false) {
+                return 13; // Morelos
+            }
+            return 18; // Otros estados más lejanos
+        }
+        
+        // 1. Máxima prioridad: Coyuca de Catalán
+        if (strpos($municipalityName, 'coyuca de catal') !== false) {
+            return 1;
+        }
+        
+        // 2. Municipios directamente cercanos a Coyuca de Catalán (geográficamente adyacentes)
+        $adjacentMunicipalities = [
+            'pungarabato' => 2,        // Comparte frontera norte
+            'tlalchapa' => 3,          // Comparte frontera este
+            'san miguel totolapan' => 4, // Comparte frontera oeste
+        ];
+        
+        foreach ($adjacentMunicipalities as $adjacent => $priority) {
+            if (strpos($municipalityName, $adjacent) !== false) {
+                return $priority;
+            }
+        }
+        
+        // 3. Municipios de la región Tierra Caliente (misma región que Coyuca)
+        $tierraCalienteMunicipalities = [
+            'ajuchitlan del progreso' => 5,
+            'ajuchitlán del progreso' => 5,
+            'cutzamala de pinzon' => 6,
+            'cutzamala de pinzón' => 6,
+            'tlapehuala' => 7,
+        ];
+        
+        foreach ($tierraCalienteMunicipalities as $regional => $priority) {
+            if (strpos($municipalityName, $regional) !== false) {
+                return $priority;
+            }
+        }
+        
+        // 4. Municipios del centro de Guerrero
+        $centralMunicipalities = [
+            'chilpancingo de los bravo' => 9,
+            'chilpancingo' => 9,
+            'tixtla de guerrero' => 10,
+            'tixtla' => 10,
+        ];
+        
+        foreach ($centralMunicipalities as $central => $priority) {
+            if (strpos($municipalityName, $central) !== false) {
+                return $priority;
+            }
+        }
+        
+        // 5. Otros municipios de Guerrero
+        return 11;
     }
 
     /**
@@ -908,10 +1173,24 @@ class LocationController extends Controller
     }
 
     /**
-     * Formatea la respuesta de localidad encontrada
+     * Formatea la respuesta de localidad encontrada (compatible con Location y PriorityLocation)
      */
     private function formatLocationResponse($location)
     {
+        // Si es un modelo Location (con relaciones)
+        if ($location instanceof \App\Models\Location) {
+            return [
+                'id' => $location->id,
+                'name' => $location->name,
+                'display_text' => $location->name . ' - ' . $location->municipality->name . ', ' . $location->municipality->state->name,
+                'municipality_id' => $location->municipality->id,
+                'municipality_name' => $location->municipality->name,
+                'state_id' => $location->municipality->state->id,
+                'state_name' => $location->municipality->state->name,
+            ];
+        }
+        
+        // Si es un modelo PriorityLocation (ya tiene datos desnormalizados)
         return [
             'id' => $location->location_id,
             'name' => $location->location_name,
