@@ -139,6 +139,7 @@ class ArchiveController extends Controller
 
     public function store(Request $request)
     {
+        // Validar datos de entrada con mensajes personalizados
         $request->validate([
             'archive_number' => 'required|integer|unique:archive,archive_number',
             'last_name_father' => 'nullable|string|max:100',
@@ -155,35 +156,29 @@ class ArchiveController extends Controller
             'location_id' => 'nullable|integer|exists:locations,id',
             'location_name' => 'nullable|string|max:100', // Para texto libre
             'trial304' => 'nullable|string|max:1'
+        ], [
+            'archive_number.unique' => 'El número de expediente ' . $request->archive_number . ' ya existe. Por favor, use un número diferente.',
+            'archive_number.required' => 'El número de expediente es obligatorio.',
+            'archive_number.integer' => 'El número de expediente debe ser un número entero.'
         ]);
 
         $data = $request->all();
 
-        // Si se envió location_name pero no location_id, usar mapeo inteligente
+        // LÓGICA SIMPLIFICADA: Si se envía location_name pero no location_id
         if (!$request->location_id && $request->location_name) {
             $locationName = trim($request->location_name);
             
-            try {
-                // Usar el sistema de mapeo inteligente de localidades
-                $mappedLocation = $this->findOrCreateLocationIntelligently($locationName);
-                
-                if ($mappedLocation) {
-                    $data['location_id'] = $mappedLocation['id'];
-                } else {
-                    // Si no se puede mapear, usar localidad genérica sin status
-                    $genericLocation = Location::firstOrCreate(
-                        ['name' => $locationName],
-                        ['municipality_id' => 1] // Solo campos esenciales
-                    );
-                    $data['location_id'] = $genericLocation->id;
-                }
-            } catch (\Exception $e) {
-                // En caso de error, crear localidad básica
-                $genericLocation = Location::firstOrCreate(
-                    ['name' => $locationName],
-                    ['municipality_id' => 1]
-                );
-                $data['location_id'] = $genericLocation->id;
+            // Intento 1: Buscar usando la función inteligente de localidades
+            $foundLocation = $this->findOrCreateLocationIntelligently($locationName);
+            
+            if ($foundLocation && isset($foundLocation['id'])) {
+                // Si existe, usar esa localidad y limpiar location_text
+                $data['location_id'] = $foundLocation['id'];
+                $data['location_text'] = null;
+            } else {
+                // Si no encuentra la localidad, guardar solo el texto plano
+                $data['location_id'] = null;
+                $data['location_text'] = $locationName;
             }
         }
 

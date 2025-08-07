@@ -26,6 +26,7 @@ class Archive extends Model
         'admission_date',
         'address',
         'location_id',
+        'location_text',
     ];
 
     protected $dates = ['admission_date', 'created_at', 'updated_at', 'deleted_at'];
