@@ -1,66 +1,254 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Proyecto SISMEG
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://github.com/LuisDonaldo2003/admin_hospital/blob/main/src/assets/img/login-logo.png" width="400" alt="Laravel Logo"></a></p>
 
-## About Laravel
+Este proyecto fue desarrollado por estudiantes del Instituto Tecnológico de Ciudad Altamirano, Guerrero, durante su estancia en el Hospital IMSS-Bienestar Coyuca de Catalán “Dr. Guillermo Soberón Acevedo”, con el propósito de ser implementado en el ámbito hospitalario, conforme a los requerimientos establecidos por el Director General, Eric Aburto Álvarez, en el marco del programa de Educación Dual.
+## Estudiantes a cargo del proyecto
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Luis Donaldo López Martínez (Programador - Diseñador)
+- Alejandro Vidal Pérez (Programador)
+- Enrique Ruiz Peralta (Programador - Generador de ideas)
+- Julián Reynoso Zavaleta (Generador de ideas - Teoría)
+- Jose Antonio Herrera Chamu  (Generador de ideas - Teoría)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+# Pasos para clonar el repositorio
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Crea una carpeta donde vaya a clonar dicho repositorio
+- Ejecuta un cmd en dirección a la carpeta de destino
+- Inicializar `git init` para que el destino sea apto para la clonación
+- Ejecutar `git clone https://github.com/LuisDonaldo2003/api_hospital.git` 
 
-## Learning Laravel
+# Pasos para construir Laravel API
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 1. Configuración del archivo `php.ini`
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Dependiendo de la versión de PHP instalada en el sistema, debe habilitarse la carga de las siguientes extensiones:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- extension=sodium
+- extension=zip
+  
+Se desmarcarán dichas extensiones para que permita realizar la siguiente instalación
 
-## Laravel Sponsors
+## 2. Instalar Composer
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Para instalar Composer en nuestro Laravel API, se necesita el siguiente comando
 
-### Premium Partners
+- composer install
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Revisar la conexión del `.env`
 
-## Contributing
+Cuando se clona el repositorio, veremos unicamente un `.env example`, dicho archivo, editaremos su nombre y pondremos unicamente el `.env`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+.env original
 
-## Code of Conduct
+```javascript
+DB_CONNECTION=sqlite
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+.env sugerencia
 
-## Security Vulnerabilities
+```javascript
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=2679
+DB_DATABASE=api_hospital
+DB_USERNAME=postgres
+DB_PASSWORD=
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Se establece como referencia el valor `pgsql`, dado que la plataforma utiliza PostgreSQL como gestor de base de datos. Este parámetro puede modificarse según el gestor que se emplee, como MySQL, entre otros.
 
-## License
+## 3. Ejecución de `php artisan storage:link`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Con dicho comando se crea un enlace simbólico (symlink) entre la carpeta `storage/app/public` y la carpeta `public/storage` del proyecto
+
+## 4. Ejecución de `php artisan key:generate`
+
+Se genera una nueva clave de aplicación y la asigna automáticamente a la variable APP_KEY en el archivo `.env`
+
+## 5. Creación de `oauth-private`
+
+Dirigete a la carpeta `api_hospital/storage` y crea una carpeta llamada `oauth-private`, el cual es un directorio de almacenamiento interno de Laravel destinado a guardar las claves privadas y públicas utilizadas para el sistema de autenticación basado en JWT con algoritmo RS256.
+
+## 6. Instalar OpenSSL en Windows
+
+Con el siguiente [enlace](https://slproweb.com/products/Win32OpenSSL.html "enlace") encontrarás el instalador de OpenSSL
+
+## 7. Editar variable de entorno para OpenSSL
+
+- Escribe en el recuadro de búsqueda de Windows `Editar variables de entorno del sistema`
+- Dirígete a `variables de entorno`
+- Dirígete a `PATH` en las variables del sistema
+- Si al instalar OpenSSL usaste su dirección predeterminada, se encuentra en `C:\Program Files\OpenSSL-Win64\bin`, el cual será puesto en dicho apartado
+- Para verificar que realmente esté instalado, abre un CMD y escribe el siguiente comando `openssl version`, el cual, debe mostrar la versión
+
+## 8. Generación de pem (privado y público)
+
+Para generar un par de claves RSA (privada y pública) usando OpenSSL, las cuales, se guardarán en la carpeta storage/oauth-private para que el sistema Laravel las use con JWT (algoritmo RS256).
+
+- Privado
+```javascript
+openssl genrsa -out storage/oauth-private/private.pem 4096
+```
+
+- Público
+```javascript
+openssl rsa -in storage/oauth-private/private.pem -pubout -out storage/oauth-private/public.pem
+```
+
+## 9. Generación de Key para JWT
+
+Con el siguiente comando
+```javascript
+php artisan jwt:secret
+```
+
+Genera una clave secreta única para JWT y la guarda en el archivo .env dentro de la variable JWT_SECRET. En donde al final del .env se mostrará dicha clave, para agilizar las cosas, copia lo siguiente y pégalo debajo de `JWT_SECRET` lo siguiente:
+
+```javascript
+JWT_ALGO=RS256
+JWT_PRIVATE_KEY=storage/oauth-private/private.pem
+JWT_PUBLIC_KEY=storage/oauth-private/public.pem
+JWT_TTL=480
+JWT_REFRESH_TTL=20160
+JWT_LEEWAY=60
+JWT_BLACKLIST_ENABLED=true
+JWT_BLACKLIST_GRACE_PERIOD=30
+```
+
+## 10. Optimizar la subida de información por parte de PHP
+
+Paraa optimizar el que PHP responda a subida grande de datos, se tiene que realizar lo siguiente:
+
+- .env
+Agrega las siguientes líneas dentro del archivo
+
+```javascript
+UPLOAD_MAX_FILESIZE=1000M
+POST_MAX_SIZE=1000M
+```
+
+- php.ini
+ Verifica las siguientes lineas y edita su valor correspondiente
+```javascript
+post_max_size = 1000M
+upload_max_filesize = 1000M
+```
+
+##11. Creación de servidor SMTP para verificación de cuentas
+
+La plataforma incorpora un sistema de verificación de cuentas que permite mantener un control sobre los registros y garantizar que los usuarios sean auténticos. Para este propósito, se utiliza un servidor SMTP, en este caso, el de Google.
+
+En el siguiente [enlace](https://www.youtube.com/watch?v=ShM8ufqsGlY "enlace"). Encontrarás un pequeño tutorial de como crear tu aplicación para Servidor SMTP, aqui te muestro un ejemplo de como debe quedar configurado en el `.env`
+
+```javascript
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=465
+MAIL_USERNAME=correodeprueba@gmail.com
+MAIL_ENCRYPTION=ssl
+MAIL_PASSWORD=opdimfjhenklskb
+MAIL_FROM_ADDRESS=correodeprueba@gmail.com
+MAIL_FROM_NAME="Hospital IMSS-Bienestar"
+```
+## 11. Ejecución de la migración
+
+Ejecuta el siguiente comando
+```javascript
+php artisan migrate --seed
+```
+Los que realizará es que los seeders se ejecutarán para iniciar con el llenado de la información
+
+## 12. Resultado esperado del .env
+
+En las siguientes líneas de código, se puede observar como tiene que estar configurado el .env
+
+```javascript
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_TIMEZONE=UTC
+APP_URL=http://127.0.0.1:8000/
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+
+APP_MAINTENANCE_DRIVER=file
+# APP_MAINTENANCE_STORE=database
+
+PHP_CLI_SERVER_WORKERS=4
+
+BCRYPT_ROUNDS=12
+
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=2679
+DB_DATABASE=api_hospital
+DB_USERNAME=postgres
+DB_PASSWORD=
+
+
+UPLOAD_MAX_FILESIZE=1000M
+POST_MAX_SIZE=1000M
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=480
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+
+BROADCAST_CONNECTION=redis
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=database
+
+CACHE_DRIVER=redis
+CACHE_PREFIX=
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=465
+MAIL_USERNAME=correodeprueba@gmail.com
+MAIL_ENCRYPTION=ssl
+MAIL_PASSWORD=opdimfjhenklskb
+MAIL_FROM_ADDRESS=correodeprueba@gmail.com
+MAIL_FROM_NAME="Hospital IMSS-Bienestar"
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+VITE_APP_NAME="${APP_NAME}"
+
+JWT_SECRET=
+JWT_ALGO=RS256
+JWT_PRIVATE_KEY=storage/oauth-private/private.pem
+JWT_PUBLIC_KEY=storage/oauth-private/public.pem
+JWT_TTL=480
+JWT_REFRESH_TTL=20160
+JWT_LEEWAY=60
+JWT_BLACKLIST_ENABLED=true
+JWT_BLACKLIST_GRACE_PERIOD=30
+```
