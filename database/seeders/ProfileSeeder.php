@@ -1,0 +1,98 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class ProfileSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $data = [
+            ['name' => 'Tecnico en informatica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura en literatura', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Bachillerato o Preparatoria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Bioingenieria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Cirujano Dentista', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Contabilidad', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad De Enfermeria Medico Quirurgica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Anestesiologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Cirugia General', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Enfermeria Del Neonato', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],           
+            ['name' => 'Especialidad En Enfermeria Infantil', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Gineco-obstetricia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Ginecologia Y Obstetricia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Imagenologia Diagnostica Y Terapeutica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Medicina De Urgencias', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Medicina Familiar', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Medicina Interna', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Medicina Legal', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Nedicina Familiar', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Ortopedia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Ortopedia Y Traumatologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Otorrinolaringologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Pediatria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Pediatria Medica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Traumatologia Y Ortopedia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Urgencias Medico Quirurgicas', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Especialidad En Urologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Ingenieria Electricista', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Ingenieria Electromecanica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Ingenieria En Sistemas Computacionales', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciada En Administracion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciada En Ciencias De La Educacion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciado En Quimico Farmaceuticobiologo', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Terapia Fisica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Administracion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Biologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Ciencias De La Enfermeria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Contabilidad', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Contabilidad Publica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Economia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Educacion Primaria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Enfermeria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Enfermeria Y Obstetricia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Gastronomia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Informatica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Informatica Administrativa', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Matematicas', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Matematicas Aplicadas Y Computacion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Medico Cirujano', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Nutricion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Psicologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Quimico Farmacobiologo', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Sociologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licenciatura En Trabajo Social', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licencuatura En Psicologia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Licienciatura En Contabilidad', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Administracion De Instituciones De Salud', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Alta Direccion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Ciencias De La Administracion', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Ciencias De La Salud Con Area De Concentracion En Salud Sexual Y Reproductiva', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Competencias Docentes', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Desarrollo Organinazional', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Desarrollo Organizacional', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Direccion De Instituciones De Salud', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Enfermeria Areas: Administracion, Docencia, Salud Laboral Y Salud Publica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestria En Salud Publica', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Maestría En Educación Neurocognicion Y Aprendizaje', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Medico Cirujano', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Medico Cirujano Partero', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Medico Cirujano Y Partero', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Medico General', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Pasante Enfermeria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Programa De Estudios Complementarios De La Competencias De La Licenciatura En Enfermeria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Quimico Biologo Parasitologo', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Radiologia E Imagen', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Tecnico Superior Universitario En Enfermeria', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Tecnico Superior Universitario En Enfermeria General', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Tecnico Superior Universitario En Gastronomia', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Tecnico Superior Universitario En Radilogia E Imagen', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Tecnico Superior Universitario En Trabajo Social', 'state' => 1, 'created_at' => now(), 'updated_at' => now()],
+
+        ];
+
+        DB::table('profiles')->insert($data);
+    }
+}
