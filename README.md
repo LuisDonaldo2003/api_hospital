@@ -252,3 +252,10 @@ JWT_LEEWAY=60
 JWT_BLACKLIST_ENABLED=true
 JWT_BLACKLIST_GRACE_PERIOD=30
 ```
+## 12. Inicializar el proyecto
+
+Para inicializar el proyecto, abre un cmd o donde tengas abierto dicha parte del proyecto y ejecuta
+
+```javascript
+php artisan serve
+```
