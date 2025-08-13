@@ -5,11 +5,11 @@
 Este proyecto fue desarrollado por estudiantes del Instituto Tecnológico de Ciudad Altamirano, Guerrero, durante su estancia en el Hospital IMSS-Bienestar Coyuca de Catalán “Dr. Guillermo Soberón Acevedo”, con el propósito de ser implementado en el ámbito hospitalario, conforme a los requerimientos establecidos por el Director General, Eric Aburto Álvarez, en el marco del programa de Educación Dual.
 ## Estudiantes a cargo del proyecto
 
-- Luis Donaldo López Martínez (Programador - Diseñador)
-- Alejandro Vidal Pérez (Programador)
-- Enrique Ruiz Peralta (Programador - Generador de ideas)
-- Julián Reynoso Zavaleta (Generador de ideas - Teoría)
-- Jose Antonio Herrera Chamu  (Generador de ideas - Teoría)
+- Luis Donaldo López Martínez (Full Stack Developer & UI/UX Designer)
+- Alejandro Vidal Pérez (Software Developer)
+- Enrique Ruiz Peralta (Software Developer & Product Strategist.)
+- Julián Reynoso Zavaleta (Product Strategist & Theoretical Concept Developer)
+- Jose Antonio Herrera Chamu  (Product Strategist & Theoretical Concept Developer)
 
 # Pasos para clonar el repositorio
 
