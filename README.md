@@ -6,7 +6,7 @@ Este proyecto fue desarrollado por estudiantes del Instituto Tecnológico de Ciu
 ## Estudiantes a cargo del proyecto
 
 - Luis Donaldo López Martínez (Full Stack Developer & UI/UX Designer)
-- Alejandro Vidal Pérez (Software Developer)
+- Alejandro Vidal Pérez (Full Stack Developer)
 - Enrique Ruiz Peralta (Software Developer & Product Strategist.)
 - Julián Reynoso Zavaleta (Product Strategist & Theoretical Concept Developer)
 - Jose Antonio Herrera Chamu  (Product Strategist & Theoretical Concept Developer)
