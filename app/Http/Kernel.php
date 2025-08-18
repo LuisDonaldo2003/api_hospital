@@ -40,6 +40,7 @@ class Kernel extends HttpKernel
             // Puedes agregar throttle aquí si lo necesitas
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\UpdateUserActivity::class,
         ],
     ];
 

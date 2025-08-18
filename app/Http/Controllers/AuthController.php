@@ -80,8 +80,8 @@ class AuthController extends Controller
 
         $user = auth('api')->user();
 
-        // Marcar al usuario como en línea (sin expiración corta)
-        \Cache::forever('user-is-online-' . $user->id, true);
+        // Marcar al usuario como en línea con expiración de 2 minutos
+        \Cache::put('user-is-online-' . $user->id, now()->timestamp, 120); // 2 minutos
 
         if (is_null($user->email_verified_at)) {
             $expired = true;
@@ -139,6 +139,17 @@ class AuthController extends Controller
         }
         auth()->logout();
         return response()->json(['message' => 'Successfully logged out']);
+    }
+
+    public function heartbeat()
+    {
+        $user = auth('api')->user();
+        if ($user) {
+            // Actualizar timestamp de actividad
+            \Cache::put('user-is-online-' . $user->id, now()->timestamp, 90); // 2 minutos
+            return response()->json(['message' => 'Heartbeat updated']);
+        }
+        return response()->json(['error' => 'Unauthorized'], 401);
     }
 
     public function refresh()

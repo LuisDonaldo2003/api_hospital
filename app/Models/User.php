@@ -101,6 +101,12 @@ class User extends Authenticatable implements JWTSubject
 
     public function isOnline()
     {
-        return \Cache::has('user-is-online-' . $this->id);
+        $timestamp = \Cache::get('user-is-online-' . $this->id);
+        if (!$timestamp) {
+            return false;
+        }
+        
+        // Verificar si el timestamp es reciente (últimos 90 segundos)
+        return (now()->timestamp - $timestamp) < 90;
     }
 }

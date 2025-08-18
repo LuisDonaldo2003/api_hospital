@@ -37,6 +37,7 @@ Route::group([
     Route::post('/me', [AuthController::class, 'me'])->name('me');
     Route::post('/list', [AuthController::class, 'list']);
     Route::post('/reg', [AuthController::class, 'reg']);
+    Route::post('/heartbeat', [AuthController::class, 'heartbeat'])->name('heartbeat');
 });
 
 // ✅ Verificación de cuenta
