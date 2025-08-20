@@ -188,22 +188,27 @@ class StaffsController extends Controller
 
     public function completeProfile(Request $request)
     {
-        $user = auth()->user();
+    $user = auth()->user();
+
+    \Log::info('📥 completeProfile request by user: ' . ($user?->id ?? 'guest'), $request->all());
 
         $request->validate([
-            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            // Solo estos cinco son obligatorios según la UI
+            'avatar' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             'mobile' => 'required|string|max:15',
             'birth_date' => 'required|date',
             'gender_id' => 'required|integer|exists:genders,id',
-            'curp' => 'required|string|max:18',
-            'ine' => 'required|string|max:18',
-            'rfc' => 'required|string|max:13',
             'attendance_number' => 'required|string|max:20',
-            'professional_license' => 'required|string|max:20',
-            'funcion_real' => 'required|string|max:255',
-            'departament_id' => 'required|integer|exists:departaments,id',
-            'profile_id' => 'required|integer|exists:profiles,id',
-            'contract_type_id' => 'required|integer|exists:contract_types,id',
+
+            // Los demás son opcionales: si el usuario los provee, se validan; si no, se omiten
+            'curp' => 'nullable|string|max:18',
+            'ine' => 'nullable|string|max:18',
+            'rfc' => 'nullable|string|max:13',
+            'professional_license' => 'nullable|string|max:20',
+            'funcion_real' => 'nullable|string|max:255',
+            'departament_id' => 'nullable|integer|exists:departaments,id',
+            'profile_id' => 'nullable|integer|exists:profiles,id',
+            'contract_type_id' => 'nullable|integer|exists:contract_types,id',
         ]);
 
         $data = $request->only([

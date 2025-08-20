@@ -7,7 +7,6 @@ use App\Models\Departaments;
 use App\Models\ContractType;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
         'name',
@@ -23,8 +22,8 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'password',
         'mobile',
-        'birth_date',
-        'gender',
+    'birth_date',
+    'gender_id',
         'avatar',
 
         // Campos personalizados
@@ -59,6 +58,12 @@ class User extends Authenticatable implements JWTSubject
     public function departament()
     {
         return $this->belongsTo(Departaments::class, 'departament_id');
+    }
+
+    // Relación con tabla genders
+    public function gender()
+    {
+        return $this->belongsTo(\App\Models\Gender::class, 'gender_id');
     }
 
     public function profileRelation()

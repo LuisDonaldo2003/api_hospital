@@ -112,14 +112,9 @@ class AuthController extends Controller
     {
         $user = auth()->user();
 
+        // Retornar UserResource para mantener consistencia y exponer gender_id + gender name
         return response()->json([
-            'user' => $user->only([
-                'id', 'name', 'surname', 'mobile', 'birth_date', 'gender',
-                'curp', 'rfc', 'ine', 'attendance_number',
-                'professional_license', 'funcion_real',
-                'departament_id', 'profile_id', 'contract_type_id',
-                'avatar'
-            ])
+            'user' => new \App\Http\Resources\User\UserResource($user)
         ]);
     }
 
@@ -168,10 +163,12 @@ class AuthController extends Controller
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
             'user' => [
-                'id' => $user->id, // <-- AGREGA ESTA LÍNEA
+                'id' => $user->id,
                 'name' => $user->name,
                 'surname' => $user->surname,
                 'email' => $user->email,
+                'gender_id' => $user->gender_id,
+                'gender' => optional($user->gender)->name,
                 'roles' => $user->getRoleNames(),
                 'permissions' => $permissions,
             ],
