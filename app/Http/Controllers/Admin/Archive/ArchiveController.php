@@ -398,6 +398,48 @@ class ArchiveController extends Controller
             }
         }
 
+        // =============================
+        // Conteos por mes (año actual) y por año (histórico)
+        // =============================
+        $currentYear = now()->year;
+
+        // Postgres: agrupar por mes del año actual
+        $monthlyRaw = DB::table('archive')
+            ->select(
+                DB::raw("TO_CHAR(DATE_TRUNC('month', COALESCE(admission_date, created_at)), 'YYYY-MM') as ym"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->whereRaw("DATE_PART('year', COALESCE(admission_date, created_at)) = ?", [$currentYear])
+            ->groupBy('ym')
+            ->orderBy('ym')
+            ->get()
+            ->keyBy('ym');
+
+        $monthlyCounts = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $key = sprintf('%04d-%02d', $currentYear, $m);
+            $monthlyCounts[] = [
+                'year' => $currentYear,
+                'month' => $m,
+                'count' => (int) ($monthlyRaw[$key]->total ?? 0)
+            ];
+        }
+
+        // Postgres: agrupar por año histórico
+        $yearlyRows = DB::table('archive')
+            ->select(DB::raw("DATE_PART('year', COALESCE(admission_date, created_at))::int as y"), DB::raw('COUNT(*) as total'))
+            ->groupBy('y')
+            ->orderBy('y')
+            ->get();
+
+        $yearlyCounts = [];
+        foreach ($yearlyRows as $row) {
+            // Puede haber registros sin fecha; filtrar nulos
+            if ($row->y !== null) {
+                $yearlyCounts[] = [ 'year' => (int) $row->y, 'count' => (int) $row->total ];
+            }
+        }
+
         return response()->json([
             'stats' => [
                 'todayAdded' => $todayAdded,
@@ -408,6 +450,9 @@ class ArchiveController extends Controller
             'dailySeries' => $dailySeries, // Serie diaria para gráfica
             'byGender' => $byGender,
             'topLocations' => $locationData,
+            // Nuevos bloques
+            'monthlyCounts' => $monthlyCounts,
+            'yearlyCounts' => $yearlyCounts,
             'generated_at' => now()->toDateTimeString(),
             'date_basis' => 'COALESCE(admission_date, created_at)'
         ]);
