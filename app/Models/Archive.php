@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Archive extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'archive';
     protected $primaryKey = 'archive_number';
@@ -19,14 +18,16 @@ class Archive extends Model
         'last_name_mother',
         'name',
         'age',
+        'age_unit',
         'gender_id',
         'contact_last_name_father',
         'contact_last_name_mother',
         'contact_name',
         'admission_date',
         'address',
-        'location_id',
         'location_text',
+        'municipality_text',
+        'state_text',
     ];
 
     protected $dates = ['admission_date', 'created_at', 'updated_at', 'deleted_at'];
@@ -34,11 +35,6 @@ class Archive extends Model
     public function gender()
     {
         return $this->belongsTo(Gender::class);
-    }
-
-    public function location()
-    {
-        return $this->belongsTo(Location::class);
     }
 }
 

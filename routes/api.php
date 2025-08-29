@@ -26,7 +26,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// 🔐 Autenticación
+// Autenticación
 Route::group([
     'prefix' => 'auth',
 ], function () {
@@ -40,7 +40,7 @@ Route::group([
     Route::post('/heartbeat', [AuthController::class, 'heartbeat'])->name('heartbeat');
 });
 
-// ✅ Verificación de cuenta
+// Verificación de cuenta
 Route::post('/verify-code', [AuthController::class, 'verifyCode']);
 
 Route::post('/resend-code', function (Request $request) {
@@ -60,35 +60,24 @@ Route::post('/resend-code', function (Request $request) {
     return response()->json(['message' => 'Código reenviado con éxito.']);
 });
 
-// 🔐 Recuperación de contraseña
+// Recuperación de contraseña
 Route::post('/forgot-password/send-code', [AuthController::class, 'sendRecoveryCode']);
 Route::post('/forgot-password/verify-code', [AuthController::class, 'verifyRecoveryCode']);
 Route::post('/forgot-password/reset', [AuthController::class, 'resetPassword']);
 
-// 🔐 Rutas protegidas con token
+// Rutas protegidas con token
 Route::group([
     'middleware' => 'auth:api',
 ], function () {
 
-    // ⚠️ Deprecado: antes devolvía genders y estados juntos
-    Route::get("archives/config", [ArchiveController::class, "config"]);
-    
-    // Endpoint de prueba para mapeo de localidades
-    Route::post("archives/test-location-mapping", [ArchiveController::class, "testLocationMapping"]);
     // Estadísticas Dashboard Archivo
     Route::get('archives/stats', [ArchiveController::class, 'stats']);
 
-    // ✅ NUEVOS ENDPOINTS
+    // NUEVOS ENDPOINTS
     Route::get('genders', [ArchiveController::class, 'genders']);
-    Route::get('states', [ArchiveController::class, 'states']); // sin municipios anidados
-
-    // Municipios y localidades por estado
-    Route::get('municipalities', [MunicipalityController::class, 'byState']);
-    Route::get('locations', [LocationController::class, 'byMunicipality']);
-    Route::get('locations/search', [LocationController::class, 'searchByName']);
-    Route::get('locations/search-priority', [LocationController::class, 'searchPriorityOnly']);
-    Route::get('locations/auto-detect', [LocationController::class, 'autoDetectLocation']);
-    Route::post('locations/find-or-create', [LocationController::class, 'findOrCreateLocationFromText']);
+    Route::get('states', [ArchiveController::class, 'states']);
+    Route::get('municipalities', [ArchiveController::class, 'municipalities']);
+    Route::get('locations', [ArchiveController::class, 'locations']);
 
     // Recursos principales
     Route::resource("archives", ArchiveController::class);
