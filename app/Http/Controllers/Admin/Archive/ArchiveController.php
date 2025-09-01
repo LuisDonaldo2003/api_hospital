@@ -26,10 +26,10 @@ class ArchiveController extends Controller
             if (is_numeric($archiveNumber)) {
                 $query->where(function($q) use ($archiveNumber) {
                     $q->where('archive_number', $archiveNumber)
-                      ->orWhere('archive_number', 'like', '%' . $archiveNumber . '%');
+                      ->orWhere('archive_number', 'ilike', '%' . $archiveNumber . '%');
                 });
             } else {
-                $query->where('archive_number', 'like', '%' . $archiveNumber . '%');
+                $query->where('archive_number', 'ilike', '%' . $archiveNumber . '%');
             }
         }
 
@@ -41,7 +41,8 @@ class ArchiveController extends Controller
                 $normalizedName = $this->removeAccents(strtolower($name));
                 $nameWords = explode(' ', $normalizedName);
                 
-                $query->where(function ($q) use ($nameWords) {
+                $query->where(function ($q) use ($nameWords, $name) {
+                    // Búsqueda palabra por palabra normalizada
                     foreach ($nameWords as $word) {
                         if (trim($word) !== '') {
                             $q->where(function ($subQ) use ($word) {
@@ -50,10 +51,18 @@ class ArchiveController extends Controller
                                      ->orWhereRaw($this->buildNormalizedSearchQuery('last_name_father'), ["%$word%"])
                                      ->orWhereRaw($this->buildNormalizedSearchQuery('last_name_mother'), ["%$word%"])
                                      // Búsqueda en nombre completo concatenado (PostgreSQL)
-                                     ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONCAT(COALESCE(name, ''), ' ', COALESCE(last_name_father, ''), ' ', COALESCE(last_name_mother, '')), 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'ñ', 'n'), 'à', 'a'), 'è', 'e'), 'ì', 'i'), 'ò', 'o'), 'ù', 'u'), 'ç', 'c')) LIKE ?", ["%$word%"]);
+                                     ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(name, '') || ' ' || COALESCE(last_name_father, '') || ' ' || COALESCE(last_name_mother, ''), 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'ñ', 'n'), 'à', 'a'), 'è', 'e'), 'ì', 'i'), 'ò', 'o'), 'ù', 'u'), 'ç', 'c')) ILIKE ?", ["%$word%"]);
                             });
                         }
                     }
+                    
+                    // Búsqueda adicional más simple como fallback
+                    $q->orWhere(function ($fallbackQ) use ($name) {
+                        $fallbackQ->where('name', 'ILIKE', "%$name%")
+                                  ->orWhere('last_name_father', 'ILIKE', "%$name%")
+                                  ->orWhere('last_name_mother', 'ILIKE', "%$name%")
+                                  ->orWhereRaw("(COALESCE(name, '') || ' ' || COALESCE(last_name_father, '') || ' ' || COALESCE(last_name_mother, '')) ILIKE ?", ["%$name%"]);
+                    });
                 });
             }
         }
@@ -65,15 +74,15 @@ class ArchiveController extends Controller
 
         // Filtros de ubicación usando campos de texto
         if ($request->filled('state_text')) {
-            $query->where('state_text', 'like', '%' . $request->state_text . '%');
+            $query->where('state_text', 'ilike', '%' . $request->state_text . '%');
         }
 
         if ($request->filled('municipality_text')) {
-            $query->where('municipality_text', 'like', '%' . $request->municipality_text . '%');
+            $query->where('municipality_text', 'ilike', '%' . $request->municipality_text . '%');
         }
 
         if ($request->filled('location_text')) {
-            $query->where('location_text', 'like', '%' . $request->location_text . '%');
+            $query->where('location_text', 'ilike', '%' . $request->location_text . '%');
         }
 
         // =============================
@@ -459,8 +468,8 @@ class ArchiveController extends Controller
      */
     private function buildNormalizedSearchQuery($column)
     {
-        // Query SQL que normaliza el campo de la BD para búsqueda con LIKE
-        return "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($column, 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'ñ', 'n'), 'à', 'a'), 'è', 'e'), 'ì', 'i'), 'ò', 'o'), 'ù', 'u'), 'ç', 'c')) LIKE ?";
+        // Query SQL que normaliza el campo de la BD para búsqueda con ILIKE (case-insensitive en PostgreSQL)
+        return "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($column, 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'ñ', 'n'), 'à', 'a'), 'è', 'e'), 'ì', 'i'), 'ò', 'o'), 'ù', 'u'), 'ç', 'c')) ILIKE ?";
     }
 
     /**
