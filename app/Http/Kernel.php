@@ -64,5 +64,7 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         'auth.jwt' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
+        'pulse.director' => \App\Http\Middleware\PulseDirectorAuth::class,
+        'pulse.inject' => \App\Http\Middleware\InjectPulseLogout::class,
     ];
 }
