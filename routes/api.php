@@ -20,7 +20,9 @@ use App\Http\Controllers\Admin\Profile\ProfileController;
 use App\Http\Controllers\Admin\Location\LocationController;
 use App\Http\Controllers\Admin\ContractTypes\ContractController;
 use App\Http\Controllers\Admin\Departament\DepartamentController;
-use App\Http\Controllers\Admin\Municipality\MunicipalityController;
+use App\Http\Controllers\Admin\PulseAccessController;
+use App\Http\Controllers\API\PersonalController;
+use App\Http\Controllers\API\PersonalDocumentController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -99,6 +101,27 @@ Route::group([
     // Ajustes
     Route::get('settings', [StaffsController::class, 'getSettings']);
     Route::post('settings', [StaffsController::class, 'updateSettings']);
+
+    // Gestión de acceso a Pulse (solo Director General)
+    Route::middleware('role:Director General')->group(function () {
+        Route::get('pulse-access', [PulseAccessController::class, 'index']);
+        Route::post('pulse-access/{userId}/toggle', [PulseAccessController::class, 'togglePulseAccess']);
+        Route::get('pulse-access/stats', [PulseAccessController::class, 'stats']);
+    });
+
+    // Gestión de Personal y Recursos Humanos
+    Route::prefix('personal')->group(function () {
+        Route::get('estadisticas', [PersonalController::class, 'estadisticas']);
+        Route::post('with-documents', [PersonalController::class, 'storeWithDocuments']);
+        Route::get('tipos-documentos', [PersonalDocumentController::class, 'tiposDocumentos']);
+        Route::get('{personalId}/documentos/estado', [PersonalDocumentController::class, 'estadoDocumentos']);
+        Route::get('{personalId}/documentos', [PersonalDocumentController::class, 'index']);
+        Route::post('documentos', [PersonalDocumentController::class, 'store']);
+        Route::get('documentos/{id}', [PersonalDocumentController::class, 'show']);
+        Route::get('documentos/{id}/download', [PersonalDocumentController::class, 'download']);
+        Route::delete('documentos/{id}', [PersonalDocumentController::class, 'destroy']);
+    });
+    Route::resource('personal', PersonalController::class);
 });
 
 // Accesos externos directos

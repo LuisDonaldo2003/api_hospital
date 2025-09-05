@@ -14,7 +14,8 @@ class InjectPulseLogout
         $response = $next($request);
 
         // Solo inyectar el botón si estamos en una página de Pulse y hay autenticación
-        if (($request->is('prueba*') || $request->is('*/prueba*')) && Session::has('pulse_director_authenticated')) {
+        $pulsePath = config('pulse.path', 'pulse');
+        if (($request->is($pulsePath.'*') || $request->is('*/'.$pulsePath.'*')) && Session::has('pulse_director_authenticated')) {
             $content = $response->getContent();
             
             // Verificar que el contenido sea HTML

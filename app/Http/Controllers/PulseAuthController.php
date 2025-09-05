@@ -36,10 +36,10 @@ class PulseAuthController extends Controller
             ])->withInput();
         }
 
-        // Verificar que tenga el rol de Director General
-        if (!$user->hasRole('Director General')) {
+        // Verificar que tenga el rol de Director General O el permiso de acceso a Pulse
+        if (!$user->hasRole('Director General') && !$user->can('access_pulse')) {
             return back()->withErrors([
-                'email' => 'No tienes permisos para acceder a Laravel Pulse. Solo el Director General puede acceder.',
+                'email' => 'No tienes permisos para acceder a Laravel Pulse. Solo usuarios autorizados pueden acceder.',
             ])->withInput();
         }
 
@@ -79,7 +79,7 @@ class PulseAuthController extends Controller
         $userId = Session::get('pulse_director_user_id');
         $user = User::find($userId);
         
-        if (!$user || !$user->hasRole('Director General')) {
+        if (!$user || (!$user->hasRole('Director General') && !$user->can('access_pulse'))) {
             Session::forget('pulse_director_authenticated');
             Session::forget('pulse_director_user_id');
             Session::forget('pulse_director_name');

@@ -124,7 +124,7 @@
 
                     <div class="director-badge">
                         <i class="fas fa-shield-alt"></i>
-                        Acceso exclusivo para Director General
+                        Acceso exclusivo para personal autorizado
                     </div>
 
                     @if ($errors->any())
@@ -178,7 +178,7 @@
                     <div class="text-center mt-4">
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Solo usuarios con rol "Director General" pueden acceder
+                            Solo usuarios autorizados pueden acceder
                         </small>
                     </div>
                 </div>

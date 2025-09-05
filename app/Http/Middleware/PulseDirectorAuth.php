@@ -33,11 +33,11 @@ class PulseDirectorAuth
             return redirect('/pulse/login');
         }
 
-        // Verificar que el usuario autenticado sigue siendo Director General
+        // Verificar que el usuario autenticado sigue siendo Director General O tiene permiso de acceso a Pulse
         $userId = Session::get('pulse_director_user_id');
         $user = User::find($userId);
         
-        if (!$user || !$user->hasRole('Director General')) {
+        if (!$user || (!$user->hasRole('Director General') && !$user->can('access_pulse'))) {
             Session::forget('pulse_director_authenticated');
             Session::forget('pulse_director_user_id');
             Session::forget('pulse_director_name');

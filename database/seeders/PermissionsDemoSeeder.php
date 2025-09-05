@@ -94,11 +94,18 @@ class PermissionsDemoSeeder extends Seeder
         // Calendario
         Permission::create(['guard_name' => 'api','name' => 'calendar']);
 
+        // Laravel Pulse Access
+        Permission::create(['guard_name' => 'api','name' => 'access_pulse']);
+        Permission::create(['guard_name' => 'api','name' => 'manage_pulse_access']);
+
 
         // --- ROLES Y USUARIOS ---
 
         // Director General (con acceso total)
         $roleSuperAdmin = Role::create(['guard_name' => 'api','name' => 'Director General']);
+        
+        // Asignar todos los permisos al Director General, incluyendo los de Pulse
+        $roleSuperAdmin->givePermissionTo(Permission::all());
 
         $userSuper = User::factory()->create([
             'name' => 'Dr. Eric Aburto Álvarez',
@@ -158,6 +165,8 @@ class PermissionsDemoSeeder extends Seeder
             'delete_payment',
             'add_payment',
             'calendar',
+            'access_pulse',
+            'manage_pulse_access',
         ];
 
         $roleSubAdmin->syncPermissions($subPermissions);
