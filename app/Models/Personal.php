@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Personal extends Model
 {
@@ -63,5 +64,22 @@ class Personal extends Model
     public function scopeActivo($query)
     {
         return $query->where('activo', true);
+    }
+
+    /**
+     * Limpiar archivos y carpetas al eliminar personal
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($personal) {
+            // La FK constraint se encarga de eliminar documentos automáticamente,
+            // pero esto es un respaldo por si acaso
+            $carpetaPersonal = 'documentos/personal/' . $personal->id;
+            if (Storage::disk('public')->exists($carpetaPersonal)) {
+                Storage::disk('public')->deleteDirectory($carpetaPersonal);
+            }
+        });
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PersonalController extends Controller
@@ -18,7 +19,8 @@ class PersonalController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Personal::with('documentos');
+            // No cargar relaciones innecesarias para el listado
+            $query = Personal::query();
 
             // Filtrar por tipo si se especifica
             if ($request->has('tipo') && $request->tipo) {
@@ -53,13 +55,15 @@ class PersonalController extends Controller
                 $query->take($request->integer('limit'));
             }
 
-            $personal = $query->orderBy('apellidos')
+            // Cargar datos con conteo de documentos en una sola consulta
+            $personal = $query->withCount('documentos')
+                             ->orderBy('apellidos')
                              ->orderBy('nombre')
                              ->get();
 
-            // Agregar el campo documentos_completos a cada registro
+            // Agregar el campo documentos_completos basado en el conteo
             $personal->each(function ($item) {
-                $item->documentos_completos = $item->documentos_completos;
+                $item->documentos_completos = $item->documentos_count >= 6;
             });
 
             return response()->json([
@@ -306,20 +310,47 @@ class PersonalController extends Controller
     public function destroy(string $id): JsonResponse
     {
         try {
-            $personal = Personal::findOrFail($id);
+            $personal = Personal::with('documentos')->findOrFail($id);
+            
+            DB::beginTransaction();
+            
+            // Contar documentos antes de eliminar
+            $totalDocumentos = $personal->documentos->count();
+            
+            // La eliminación en cascada se maneja automáticamente:
+            // 1. La FK constraint elimina los registros de personal_documents
+            // 2. El evento boot() en PersonalDocument elimina cada archivo del storage
             $personal->delete();
+            
+            // Eliminar la carpeta completa del personal si existe
+            $carpetaPersonal = 'documentos/personal/' . $id;
+            if (Storage::disk('public')->exists($carpetaPersonal)) {
+                Storage::disk('public')->deleteDirectory($carpetaPersonal);
+            }
+            
+            DB::commit();
+            
+            $mensaje = "Personal eliminado exitosamente";
+            if ($totalDocumentos > 0) {
+                $mensaje .= " junto con {$totalDocumentos} documento(s) y sus archivos asociados";
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Personal eliminado exitosamente'
+                'message' => $mensaje,
+                'data' => [
+                    'documentos_eliminados' => $totalDocumentos
+                ]
             ]);
 
         } catch (ModelNotFoundException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Personal no encontrado'
             ], 404);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar el personal: ' . $e->getMessage()

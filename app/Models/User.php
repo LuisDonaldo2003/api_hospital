@@ -76,6 +76,14 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(ContractType::class, 'contract_type_id');
     }
 
+    /**
+     * Relación con los logs de actividad
+     */
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
     // JWT
     public function getJWTIdentifier()
     {
