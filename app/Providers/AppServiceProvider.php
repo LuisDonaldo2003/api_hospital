@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\ActivityReportService;
+use App\Services\MissedReportRecoveryService;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Pulse\Facades\Pulse;
 
@@ -12,7 +14,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Registrar el servicio de reportes de actividad
+        $this->app->singleton(ActivityReportService::class, function ($app) {
+            return new ActivityReportService();
+        });
+        
+        // Registrar el servicio de recuperación de reportes perdidos
+        $this->app->singleton(MissedReportRecoveryService::class, function ($app) {
+            return new MissedReportRecoveryService($app->make(ActivityReportService::class));
+        });
     }
 
     /**
