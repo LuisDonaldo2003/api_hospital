@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Departament;
 use App\Http\Controllers\Controller;
 use App\Models\Departaments;
 use Illuminate\Http\Request;
+use App\Services\ActivityLoggerService;
 
 class DepartamentController extends Controller
 {
@@ -17,6 +18,12 @@ class DepartamentController extends Controller
         }
 
         $departaments = $query->orderBy("id", "desc")->get();
+
+        // Log the list action
+        ActivityLoggerService::logRead('Departament', null, 'departaments', [
+            'search_term' => $request->search,
+            'total_results' => $departaments->count()
+        ]);
 
         return response()->json([
             "departaments" => $departaments->map(function ($departament) {
@@ -46,6 +53,12 @@ class DepartamentController extends Controller
 
         $departaments = Departaments::create($request->all());
 
+        // Log the creation activity
+        ActivityLoggerService::logCreate('Departament', $departaments->id, 'departaments', [
+            'name' => $departaments->name,
+            'state' => $departaments->state
+        ]);
+
         return response()->json([
             "message" => 200,
             "message_text" => "Departamento creado correctamente",
@@ -60,6 +73,12 @@ class DepartamentController extends Controller
     public function show(string $id)
     {
         $departament = Departaments::findOrFail($id);
+
+        // Log the read activity
+        ActivityLoggerService::logRead('Departament', $departament->id, 'departaments', [
+            'name' => $departament->name,
+            'state' => $departament->state
+        ]);
 
         return response()->json([
             "id" => $departament->id,
@@ -83,7 +102,23 @@ class DepartamentController extends Controller
         }
 
         $departament = Departaments::findOrFail($id);
+
+        // Store old values for logging
+        $oldValues = [
+            'name' => $departament->name,
+            'state' => $departament->state
+        ];
+
         $departament->update($request->all());
+
+        // Store new values for logging
+        $newValues = [
+            'name' => $departament->name,
+            'state' => $departament->state
+        ];
+
+        // Log the update activity
+        ActivityLoggerService::logUpdate('Departament', $departament->id, 'departaments', $oldValues, $newValues);
 
         return response()->json([
             "message" => 200,
@@ -99,6 +134,13 @@ class DepartamentController extends Controller
     public function destroy(string $id)
     {
         $departament = Departaments::findOrFail($id);
+
+        // Log the deletion activity
+        ActivityLoggerService::logDelete('Departament', $departament->id, 'departaments', [
+            'name' => $departament->name,
+            'state' => $departament->state
+        ]);
+
         $departament->delete();
 
         return response()->json([

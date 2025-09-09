@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Rol;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLoggerService;
 
 class RolesController extends Controller
 {
@@ -17,6 +18,12 @@ class RolesController extends Controller
         }
 
         $roles = $query->orderBy("id", "desc")->with('permissions')->get();
+
+        // Log de acceso a listado de roles
+        ActivityLoggerService::logRead('Role', null, 'roles', [
+            'search_term' => $request->search,
+            'total_results' => $roles->count()
+        ]);
 
         return response()->json([
             "roles" => $roles->map(function ($rol) {
@@ -55,6 +62,13 @@ class RolesController extends Controller
             $role->syncPermissions($request->permissions);
         }
 
+        // Registrar actividad de creación
+        ActivityLoggerService::logCreate('Role', $role->id, 'roles', [
+            'name' => $role->name,
+            'guard_name' => $role->guard_name,
+            'permissions' => $role->permissions->pluck('name')->toArray()
+        ]);
+
         return response()->json([
             "message" => 200,
             "message_text" => "Rol creado correctamente",
@@ -69,6 +83,12 @@ class RolesController extends Controller
     public function show(string $id)
     {
         $role = Role::with('permissions')->findOrFail($id);
+
+        // Log the read activity
+        ActivityLoggerService::logRead('Role', $role->id, 'roles', [
+            'name' => $role->name,
+            'permissions_count' => $role->permissions->count()
+        ]);
 
         return response()->json([
             "id" => $role->id,
@@ -88,6 +108,10 @@ class RolesController extends Controller
         ]);
 
         $role = Role::findOrFail($id);
+        
+        // Guardar valores anteriores para el log
+        $oldValues = $role->toArray();
+        
         $role->update(['name' => $request->name]);
 
         if ($request->has('permissions')) {
@@ -95,6 +119,15 @@ class RolesController extends Controller
         }
 
         $role->load('permissions');
+
+        // Registrar actividad de actualización
+        ActivityLoggerService::logUpdate('Role', $role->id, 'roles', [
+            'name' => $oldValues['name'],
+            'permissions' => $oldValues['permissions']
+        ], [
+            'name' => $role->name,
+            'permissions' => $role->permissions->pluck('name')->toArray()
+        ]);
 
         return response()->json([
             "message" => 200,
@@ -119,6 +152,13 @@ class RolesController extends Controller
                 "message_text" => "EL ROL SELECCIONADO NO SE PUEDE ELIMINAR PORQUE TIENE USUARIOS RELACIONADOS"
             ], 403);
         }
+
+        // Log the deletion activity
+        ActivityLoggerService::logDelete('Role', $role->id, 'roles', [
+            'name' => $role->name,
+            'guard_name' => $role->guard_name,
+            'permissions' => $role->permissions->pluck('name')->toArray()
+        ]);
 
         $role->delete();
 

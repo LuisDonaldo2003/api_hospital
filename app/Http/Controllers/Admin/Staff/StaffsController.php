@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Support\Str;
+use App\Services\ActivityLoggerService;
 
 class StaffsController extends Controller
 {
@@ -30,6 +31,12 @@ class StaffsController extends Controller
         }
 
         $users = $query->orderBy("id", "desc")->get();
+
+        // Log the list action
+        ActivityLoggerService::logRead('Staff', null, 'staff', [
+            'search_term' => $request->search,
+            'total_results' => $users->count()
+        ]);
 
         return response()->json([
             "users" => UserResource::collection($users),
@@ -111,6 +118,15 @@ class StaffsController extends Controller
         $user = User::create($data);
         $user->assignRole(Role::findOrFail($request->role_id));
 
+        // Log the creation activity
+        ActivityLoggerService::logCreate('User', $user->id, 'staff', [
+            'name' => $user->name,
+            'surname' => $user->surname,
+            'email' => $user->email,
+            'role' => $user->roles->first()?->name,
+            'departament_id' => $user->departament_id
+        ]);
+
         return response()->json([
             "message" => 200,
             "message_text" => "Usuario creado correctamente. Se envió un código de verificación al correo.",
@@ -131,6 +147,14 @@ class StaffsController extends Controller
 
         $user->avatar = $user->avatar ? asset('storage/' . $user->avatar) : null;
 
+        // Log the read activity
+        ActivityLoggerService::logRead('User', $user->id, 'staff', [
+            'name' => $user->name,
+            'surname' => $user->surname,
+            'email' => $user->email,
+            'role' => $user->roles->first()?->name
+        ]);
+
         return response()->json([
             "user" => new UserResource($user)
         ]);
@@ -139,6 +163,17 @@ class StaffsController extends Controller
     public function update(Request $request, string $id)
     {
         $user = User::findOrFail($id);
+
+        // Store old values for logging
+        $oldValues = [
+            'name' => $user->name,
+            'surname' => $user->surname,
+            'email' => $user->email,
+            'role' => $user->roles->first()?->name,
+            'departament_id' => $user->departament_id,
+            'profile_id' => $user->profile_id,
+            'contract_type_id' => $user->contract_type_id
+        ];
 
         if (User::where("id", "<>", $id)->where("email", $request->email)->exists()) {
             return response()->json([
@@ -178,6 +213,24 @@ class StaffsController extends Controller
         if ($request->role_id) {
             $user->syncRoles([Role::findOrFail($request->role_id)]);
         }
+
+        // Refresh user to get updated relations
+        $user->refresh();
+        $user->load('roles');
+
+        // Store new values for logging
+        $newValues = [
+            'name' => $user->name,
+            'surname' => $user->surname,
+            'email' => $user->email,
+            'role' => $user->roles->first()?->name,
+            'departament_id' => $user->departament_id,
+            'profile_id' => $user->profile_id,
+            'contract_type_id' => $user->contract_type_id
+        ];
+
+        // Log the update activity
+        ActivityLoggerService::logUpdate('User', $user->id, 'staff', $oldValues, $newValues);
 
         return response()->json([
             "message" => 200,
@@ -235,6 +288,16 @@ class StaffsController extends Controller
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
+        
+        // Log the deletion activity
+        ActivityLoggerService::logDelete('User', $user->id, 'staff', [
+            'name' => $user->name,
+            'surname' => $user->surname,
+            'email' => $user->email,
+            'role' => $user->roles->first()?->name,
+            'departament_id' => $user->departament_id
+        ]);
+
         if ($user->avatar) {
             Storage::delete('public/' . $user->avatar);
         }

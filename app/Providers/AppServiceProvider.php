@@ -20,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configurar zona horaria por defecto para toda la aplicación
+        date_default_timezone_set(config('app.timezone'));
+        
         // Configurar cómo Laravel Pulse resuelve los avatares de usuario
         Pulse::user(fn ($user) => [
             'name' => $user->name . ($user->surname ? ' ' . $user->surname : ''),

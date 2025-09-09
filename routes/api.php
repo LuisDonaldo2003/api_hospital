@@ -134,4 +134,18 @@ Route::prefix('archives/backup')->group(function () {
     Route::get('/list', [ArchiveController::class, 'listBackups']);
     Route::get('/download/{filename}', [ArchiveController::class, 'downloadBackup']);
 });
+
+// Actividades de usuarios
+Route::prefix('user-activities')->middleware('auth:api')->group(function () {
+    Route::get('/stats', [App\Http\Controllers\UserActivityController::class, 'getStats']);
+    Route::get('/', [App\Http\Controllers\UserActivityController::class, 'getRecentActivities']);
+    Route::get('/by-user', [App\Http\Controllers\UserActivityController::class, 'getActivitiesByUser']);
+    Route::get('/by-module', [App\Http\Controllers\UserActivityController::class, 'getActivitiesByModule']);
+    Route::get('/by-action', [App\Http\Controllers\UserActivityController::class, 'getActivitiesByActionType']);
+    Route::get('/most-active', [App\Http\Controllers\UserActivityController::class, 'getMostActiveUsers']);
+    Route::post('/', [App\Http\Controllers\UserActivityController::class, 'logActivity']);
+    Route::get('/{id}', [App\Http\Controllers\UserActivityController::class, 'getActivityDetail']);
+    Route::get('/user/{userId}', [App\Http\Controllers\UserActivityController::class, 'getUserActivities']);
+});
+
 Route::post('/profile/avatar/{id}', [ProfileAvatarController::class, 'update'])->middleware('auth:api');

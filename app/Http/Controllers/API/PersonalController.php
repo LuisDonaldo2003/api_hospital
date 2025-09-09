@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Services\ActivityLoggerService;
 
 class PersonalController extends Controller
 {
@@ -66,6 +67,13 @@ class PersonalController extends Controller
                 $item->documentos_completos = $item->documentos_count >= 6;
             });
 
+            // Log the list action
+            ActivityLoggerService::logRead('Personal', null, 'medical-personal', [
+                'search_term' => $request->search,
+                'tipo_filter' => $request->tipo,
+                'total_results' => $totalData
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $personal,
@@ -113,6 +121,14 @@ class PersonalController extends Controller
                 'apellidos' => $request->apellidos,
                 'tipo' => $request->tipo,
                 'fecha_ingreso' => now()->toDateString()
+            ]);
+
+            // Log the creation activity
+            ActivityLoggerService::logCreate('Personal', $personal->id, 'medical-personal', [
+                'nombre' => $personal->nombre,
+                'apellidos' => $personal->apellidos,
+                'tipo' => $personal->tipo,
+                'fecha_ingreso' => $personal->fecha_ingreso
             ]);
 
             return response()->json([
@@ -241,6 +257,14 @@ class PersonalController extends Controller
             $personal = Personal::with('documentos')->findOrFail($id);
             $personal->documentos_completos = $personal->documentos_completos;
 
+            // Log the read activity
+            ActivityLoggerService::logRead('Personal', $personal->id, 'medical-personal', [
+                'nombre' => $personal->nombre,
+                'apellidos' => $personal->apellidos,
+                'tipo' => $personal->tipo,
+                'documentos_count' => $personal->documentos->count()
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $personal,
@@ -268,6 +292,14 @@ class PersonalController extends Controller
         try {
             $personal = Personal::findOrFail($id);
 
+            // Store old values for logging
+            $oldValues = [
+                'nombre' => $personal->nombre,
+                'apellidos' => $personal->apellidos,
+                'tipo' => $personal->tipo,
+                'activo' => $personal->activo
+            ];
+
             $validator = Validator::make($request->all(), [
                 'nombre' => 'sometimes|required|string|min:2|max:255',
                 'apellidos' => 'sometimes|required|string|min:2|max:255',
@@ -284,6 +316,17 @@ class PersonalController extends Controller
             }
 
             $personal->update($request->all());
+
+            // Store new values for logging
+            $newValues = [
+                'nombre' => $personal->nombre,
+                'apellidos' => $personal->apellidos,
+                'tipo' => $personal->tipo,
+                'activo' => $personal->activo
+            ];
+
+            // Log the update activity
+            ActivityLoggerService::logUpdate('Personal', $personal->id, 'medical-personal', $oldValues, $newValues);
 
             return response()->json([
                 'success' => true,
@@ -316,6 +359,15 @@ class PersonalController extends Controller
             
             // Contar documentos antes de eliminar
             $totalDocumentos = $personal->documentos->count();
+            
+            // Log the deletion activity before deleting
+            ActivityLoggerService::logDelete('Personal', $personal->id, 'medical-personal', [
+                'nombre' => $personal->nombre,
+                'apellidos' => $personal->apellidos,
+                'tipo' => $personal->tipo,
+                'documentos_count' => $totalDocumentos,
+                'fecha_ingreso' => $personal->fecha_ingreso
+            ]);
             
             // La eliminación en cascada se maneja automáticamente:
             // 1. La FK constraint elimina los registros de personal_documents

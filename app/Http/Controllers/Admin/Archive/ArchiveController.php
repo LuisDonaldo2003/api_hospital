@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLoggerService;
 
 class ArchiveController extends Controller
 {
@@ -147,11 +148,21 @@ class ArchiveController extends Controller
         }
 
         // Fallback con paginación por defecto
+        // Log de acceso a listado
+        ActivityLoggerService::logRead('Archive', null, 'archive', [
+            'filters_applied' => !empty(array_filter($request->only(['archive_number', 'name', 'surname', 'birth_date', 'gender_id']))),
+            'total_results' => $query->count()
+        ]);
+
         return response()->json($query->paginate(50));
     }
 
     public function store(Request $request)
     {
+        // Log simple para verificar que el método se ejecuta
+        error_log("STORE METHOD CALLED - Archive Controller");
+        \Log::info('ArchiveController store method called', $request->all());
+        
         // Validar datos de entrada con mensajes personalizados
         $request->validate([
             'archive_number' => 'required|integer|unique:archive,archive_number',
@@ -177,6 +188,26 @@ class ArchiveController extends Controller
 
         $archive = Archive::create($request->all());
 
+        // Debug logs
+        \Log::info('ArchiveController: Nuevo archivo creado', [
+            'archive_id' => $archive->id,
+            'user_authenticated' => \Illuminate\Support\Facades\Auth::check(),
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'user_name' => \Illuminate\Support\Facades\Auth::user()?->name ?? 'No user'
+        ]);
+
+        // Registrar actividad
+        ActivityLoggerService::logCreate('Archive', $archive->id, 'archive', [
+            'name' => $archive->name ?? 'N/A',
+            'last_name_father' => $archive->last_name_father ?? 'N/A',
+            'last_name_mother' => $archive->last_name_mother ?? 'N/A',
+            'archive_number' => $archive->archive_number ?? 'N/A',
+            'birth_date' => $archive->birth_date ?? 'N/A',
+            'gender_id' => $archive->gender_id ?? 'N/A'
+        ]);
+
+        \Log::info('ArchiveController: ActivityLoggerService llamado');
+
         return response()->json([
             'message' => 'Registro creado correctamente.',
             'archive' => $archive
@@ -190,6 +221,13 @@ class ArchiveController extends Controller
         if (!$archive) {
             return response()->json(['message' => 'Registro no encontrado.'], 404);
         }
+
+        // Registrar actividad de visualización
+        ActivityLoggerService::logRead('Archive', $archive->id, 'archive', [
+            'name' => $archive->name ?? 'N/A',
+            'last_name_father' => $archive->last_name_father ?? 'N/A',
+            'archive_number' => $archive->archive_number ?? 'N/A'
+        ]);
 
         return response()->json(['archive' => $archive]);
     }
@@ -219,7 +257,21 @@ class ArchiveController extends Controller
             'state_text' => 'nullable|string|max:100',
         ]);
 
+        // Guardar valores anteriores para el log
+        $oldValues = [
+            'name' => $archive->name ?? 'N/A',
+            'last_name_father' => $archive->last_name_father ?? 'N/A',
+            'archive_number' => $archive->archive_number ?? 'N/A'
+        ];
+        
         $archive->update($request->all());
+        
+        // Registrar actividad de actualización
+        ActivityLoggerService::logUpdate('Archive', $archive->id, 'archive', $oldValues, [
+            'name' => $archive->name ?? 'N/A',
+            'last_name_father' => $archive->last_name_father ?? 'N/A',
+            'archive_number' => $archive->archive_number ?? 'N/A'
+        ]);
 
         return response()->json([
             'message' => 'Registro actualizado correctamente.',
@@ -235,6 +287,15 @@ class ArchiveController extends Controller
             return response()->json(['message' => 'Registro no encontrado.'], 404);
         }
 
+        // Registrar actividad de eliminación antes de eliminar
+        ActivityLoggerService::logDelete('Archive', $archive->id, 'archive', [
+            'name' => $archive->name ?? 'N/A',
+            'last_name_father' => $archive->last_name_father ?? 'N/A',
+            'archive_number' => $archive->archive_number ?? 'N/A',
+            'birth_date' => $archive->birth_date ?? 'N/A',
+            'gender' => $archive->gender ?? 'N/A'
+        ]);
+        
         $archive->delete();
 
         return response()->json([

@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Services\ActivityLoggerService;
 
 class PersonalDocumentController extends Controller
 {
@@ -29,6 +30,12 @@ class PersonalDocumentController extends Controller
                 // Todos los documentos
                 $documentos = PersonalDocument::with('personal')->get();
             }
+
+            // Log the list action
+            ActivityLoggerService::logRead('PersonalDocument', null, 'medical-documents', [
+                'personal_id' => $personalId,
+                'total_results' => $documentos->count()
+            ]);
 
             return response()->json([
                 'success' => true,
