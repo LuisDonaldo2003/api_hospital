@@ -98,6 +98,12 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'access_pulse']);
         Permission::create(['guard_name' => 'api','name' => 'manage_pulse_access']);
 
+        //Recursos Humanos
+        Permission::create(['guard_name' => 'api','name' => 'list_personal']);
+        Permission::create(['guard_name' => 'api','name' => 'add_personal']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_personal']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_personal']);
+
 
         // --- ROLES Y USUARIOS ---
 
@@ -321,7 +327,7 @@ class PermissionsDemoSeeder extends Seeder
 
 
         //Archivo
-        $roleArchive = Role::create(['guard_name' => 'api','name' => 'Archivo ']);
+        $roleArchive = Role::create(['guard_name' => 'api','name' => 'Archivo']);
         $ingeArchivePermissions = [
             'add_archive',
             'list_archive',
@@ -342,5 +348,25 @@ class PermissionsDemoSeeder extends Seeder
         $userArchive->assignRole($roleArchive);
 
 
+         //Recursos Humanos
+        $roleHumanResources = Role::create(['guard_name' => 'api','name' => 'Recursos Humanos']);
+        $ingeHumanResourcesPermissions = [
+            'admin_dashboard',
+            'add_personal',
+            'list_personal',
+            'edit_personal',
+            'delete_personal',
+        ];
+        $roleHumanResources->syncPermissions($ingeHumanResourcesPermissions);
+
+         $userHumanResources = User::updateOrCreate(
+            ['email' => 'recursoshumanos@gmail.com'],
+            [
+                'name' => 'Recursos Humanos User',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userHumanResources->assignRole($roleHumanResources);
     }
 }

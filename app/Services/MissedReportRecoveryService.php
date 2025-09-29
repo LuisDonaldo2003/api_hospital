@@ -94,9 +94,13 @@ class MissedReportRecoveryService
         $missedDates = [];
         $checkDate = $lastReportDate->copy()->addDay();
 
-        // Verificar desde el día siguiente al último reporte hasta ayer
-        while ($checkDate->format('Y-m-d') < $today->format('Y-m-d')) {
-            // Solo agregar días laborales si es necesario, o todos los días
+        // Determinar hasta qué fecha verificar reportes perdidos
+        // Si ya pasó de medianoche, incluir el día de ayer como potencialmente perdido
+        $yesterday = $today->copy()->subDay();
+        $endDate = $yesterday->format('Y-m-d');
+
+        // Verificar desde el día siguiente al último reporte hasta ayer inclusive
+        while ($checkDate->format('Y-m-d') <= $endDate) {
             $missedDates[] = $checkDate->copy();
             $checkDate->addDay();
         }
