@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 // Controladores
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\Admin\Rol\RolesController;
 use App\Http\Controllers\Admin\State\StateController;
@@ -27,6 +28,10 @@ use App\Http\Controllers\API\PersonalDocumentController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Rutas de mantenimiento (accesibles siempre)
+Route::get('/maintenance/status', [MaintenanceController::class, 'status']);
+Route::get('/maintenance/check', [MaintenanceController::class, 'check']);
 
 // Autenticación
 Route::group([

@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\MaintenanceUp;
+use App\Console\Commands\MaintenanceDown;
+use App\Console\Commands\HospitalMaintenance;
 use App\Services\ActivityReportService;
 use App\Services\MissedReportRecoveryService;
 use Illuminate\Support\ServiceProvider;
@@ -30,6 +33,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Registrar comandos personalizados
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                MaintenanceUp::class,
+                MaintenanceDown::class,
+                HospitalMaintenance::class,
+            ]);
+        }
+        
         // Configurar zona horaria por defecto para toda la aplicación
         date_default_timezone_set(config('app.timezone'));
         
