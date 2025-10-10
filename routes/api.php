@@ -154,3 +154,8 @@ Route::prefix('user-activities')->middleware('auth:api')->group(function () {
 });
 
 Route::post('/profile/avatar/{id}', [ProfileAvatarController::class, 'update'])->middleware('auth:api');
+
+// Ruta simple para verificar si el sistema está activo (no en mantenimiento)
+Route::get('/health-check', function () {
+    return response()->json(['status' => 'ok', 'message' => 'Sistema activo'], 200);
+});
