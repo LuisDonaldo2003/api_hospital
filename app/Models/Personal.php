@@ -14,6 +14,8 @@ class Personal extends Model
         'nombre',
         'apellidos',
         'tipo',
+        'rfc',
+        'numero_checador',
         'fecha_ingreso',
         'activo'
     ];
@@ -41,8 +43,9 @@ class Personal extends Model
             'Comprobante de domicilio',
             'CURP',
             'INE',
-            'RFC',
-            'Título profesional'
+            'Título profesional',
+            'Constancias de cursos',
+            'Cédula profesional'
         ];
 
         $documentosSubidos = $this->documentos()->pluck('tipo_documento')->toArray();
@@ -64,6 +67,36 @@ class Personal extends Model
     public function scopeActivo($query)
     {
         return $query->where('activo', true);
+    }
+
+    /**
+     * Scope para búsqueda general (nombre, RFC, número de checador)
+     */
+    public function scopeBusqueda($query, $termino)
+    {
+        return $query->where(function ($q) use ($termino) {
+            $q->where('nombre', 'LIKE', "%{$termino}%")
+              ->orWhere('apellidos', 'LIKE', "%{$termino}%")
+              ->orWhere('rfc', 'LIKE', "%{$termino}%")
+              ->orWhere('numero_checador', 'LIKE', "%{$termino}%")
+              ->orWhereRaw("CONCAT(nombre, ' ', apellidos) LIKE ?", ["%{$termino}%"]);
+        });
+    }
+
+    /**
+     * Scope para búsqueda por RFC
+     */
+    public function scopePorRfc($query, $rfc)
+    {
+        return $query->where('rfc', 'LIKE', "%{$rfc}%");
+    }
+
+    /**
+     * Scope para búsqueda por número de checador
+     */
+    public function scopePorNumeroChecador($query, $numero)
+    {
+        return $query->where('numero_checador', 'LIKE', "%{$numero}%");
     }
 
     /**

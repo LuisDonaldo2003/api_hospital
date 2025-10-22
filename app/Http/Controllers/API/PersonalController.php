@@ -35,13 +35,9 @@ class PersonalController extends Controller
                 $query->activo(); // Por defecto solo activos
             }
 
-            // Búsqueda por texto
+            // Búsqueda por texto (nombre, apellidos, RFC, número de checador)
             if ($request->has('search') && $request->search) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('nombre', 'like', "%{$search}%")
-                      ->orWhere('apellidos', 'like', "%{$search}%");
-                });
+                $query->busqueda($request->search);
             }
 
             // Obtener total antes de aplicar limit/offset
@@ -62,9 +58,9 @@ class PersonalController extends Controller
                              ->orderBy('nombre')
                              ->get();
 
-            // Agregar el campo documentos_completos basado en el conteo
+            // Agregar el campo documentos_completos basado en el conteo (ahora son 7 documentos)
             $personal->each(function ($item) {
-                $item->documentos_completos = $item->documentos_count >= 6;
+                $item->documentos_completos = $item->documentos_count >= 7;
             });
 
             // Log the list action
@@ -98,14 +94,23 @@ class PersonalController extends Controller
             $validator = Validator::make($request->all(), [
                 'nombre' => 'required|string|min:2|max:255',
                 'apellidos' => 'required|string|min:2|max:255',
-                'tipo' => 'required|in:Clínico,No Clínico'
+                'tipo' => 'required|in:Clínico,No Clínico',
+                'rfc' => 'required|string|max:13|regex:/^[A-Z0-9]+$/|unique:personals,rfc',
+                'numero_checador' => 'required|string|regex:/^[0-9]{1,4}$/|unique:personals,numero_checador'
             ], [
                 'nombre.required' => 'El nombre es requerido',
                 'nombre.min' => 'El nombre debe tener al menos 2 caracteres',
                 'apellidos.required' => 'Los apellidos son requeridos',
                 'apellidos.min' => 'Los apellidos deben tener al menos 2 caracteres',
                 'tipo.required' => 'El tipo de personal es requerido',
-                'tipo.in' => 'El tipo debe ser Clínico o No Clínico'
+                'tipo.in' => 'El tipo debe ser Clínico o No Clínico',
+                'rfc.required' => 'El RFC es requerido',
+                'rfc.size' => 'El RFC debe tener exactamente 13 caracteres',
+                'rfc.regex' => 'El formato del RFC no es válido (4 letras + 6 dígitos + 3 caracteres)',
+                'rfc.unique' => 'Este RFC ya está registrado por otro empleado',
+                'numero_checador.required' => 'El número de checador es requerido',
+                'numero_checador.regex' => 'El número de checador debe tener entre 1 y 4 dígitos',
+                'numero_checador.unique' => 'Este número de checador ya está asignado a otro empleado'
             ]);
 
             if ($validator->fails()) {
@@ -120,6 +125,8 @@ class PersonalController extends Controller
                 'nombre' => $request->nombre,
                 'apellidos' => $request->apellidos,
                 'tipo' => $request->tipo,
+                'rfc' => strtoupper($request->rfc),
+                'numero_checador' => $request->numero_checador,
                 'fecha_ingreso' => now()->toDateString()
             ]);
 
@@ -156,7 +163,9 @@ class PersonalController extends Controller
                 'nombre' => 'required|string|min:2|max:255',
                 'apellidos' => 'required|string|min:2|max:255',
                 'tipo' => 'required|in:Clínico,No Clínico',
-                'documentos' => 'nullable|array|max:6',
+                'rfc' => 'required|string|max:13|regex:/^[A-Z0-9]+$/|unique:personals,rfc',
+                'numero_checador' => 'required|string|regex:/^[0-9]{1,4}$/|unique:personals,numero_checador',
+                'documentos' => 'nullable|array|max:7',
                 'documentos.*' => 'required|file|mimes:pdf|max:10240'
             ], [
                 'nombre.required' => 'El nombre es requerido',
@@ -165,7 +174,14 @@ class PersonalController extends Controller
                 'apellidos.min' => 'Los apellidos deben tener al menos 2 caracteres',
                 'tipo.required' => 'El tipo de personal es requerido',
                 'tipo.in' => 'El tipo debe ser Clínico o No Clínico',
-                'documentos.max' => 'No puede subir más de 6 documentos',
+                'rfc.required' => 'El RFC es requerido',
+                'rfc.max' => 'El RFC no puede tener más de 13 caracteres',
+                'rfc.regex' => 'El RFC solo puede contener letras y números',
+                'rfc.unique' => 'Este RFC ya está registrado por otro empleado',
+                'numero_checador.required' => 'El número de checador es requerido',
+                'numero_checador.regex' => 'El número de checador debe tener entre 1 y 4 dígitos',
+                'numero_checador.unique' => 'Este número de checador ya está asignado a otro empleado',
+                'documentos.max' => 'No puede subir más de 7 documentos',
                 'documentos.*.mimes' => 'Todos los documentos deben ser archivos PDF',
                 'documentos.*.max' => 'Cada documento no puede ser mayor a 10MB'
             ]);
@@ -183,6 +199,8 @@ class PersonalController extends Controller
                 'nombre' => $request->nombre,
                 'apellidos' => $request->apellidos,
                 'tipo' => $request->tipo,
+                'rfc' => strtoupper($request->rfc),
+                'numero_checador' => $request->numero_checador,
                 'fecha_ingreso' => now()->toDateString()
             ]);
 
@@ -211,10 +229,10 @@ class PersonalController extends Controller
 
             // Mensaje personalizado según documentos subidos
             $cantidadDocumentos = count($documentosGuardados);
-            if ($cantidadDocumentos === 6) {
+            if ($cantidadDocumentos === 7) {
                 $mensaje = 'Personal y todos los documentos creados exitosamente';
             } elseif ($cantidadDocumentos > 0) {
-                $mensaje = "Personal creado exitosamente con {$cantidadDocumentos}/6 documentos. Será marcado como documentos incompletos.";
+                $mensaje = "Personal creado exitosamente con {$cantidadDocumentos}/7 documentos. Será marcado como documentos incompletos.";
             } else {
                 $mensaje = 'Personal creado exitosamente sin documentos. Será marcado como documentos incompletos.';
             }
@@ -297,6 +315,8 @@ class PersonalController extends Controller
                 'nombre' => $personal->nombre,
                 'apellidos' => $personal->apellidos,
                 'tipo' => $personal->tipo,
+                'rfc' => $personal->rfc,
+                'numero_checador' => $personal->numero_checador,
                 'activo' => $personal->activo
             ];
 
@@ -304,6 +324,8 @@ class PersonalController extends Controller
                 'nombre' => 'sometimes|required|string|min:2|max:255',
                 'apellidos' => 'sometimes|required|string|min:2|max:255',
                 'tipo' => 'sometimes|required|in:Clínico,No Clínico',
+                'rfc' => 'sometimes|required|string|max:13|regex:/^[A-Z0-9]+$/|unique:personals,rfc,' . $id,
+                'numero_checador' => 'sometimes|required|string|regex:/^[0-9]{1,4}$/|unique:personals,numero_checador,' . $id,
                 'activo' => 'sometimes|boolean'
             ]);
 
@@ -315,13 +337,21 @@ class PersonalController extends Controller
                 ], 422);
             }
 
-            $personal->update($request->all());
+            // Preparar datos para actualización
+            $updateData = $request->only(['nombre', 'apellidos', 'tipo', 'numero_checador', 'activo']);
+            if ($request->has('rfc')) {
+                $updateData['rfc'] = strtoupper($request->rfc);
+            }
+
+            $personal->update($updateData);
 
             // Store new values for logging
             $newValues = [
                 'nombre' => $personal->nombre,
                 'apellidos' => $personal->apellidos,
                 'tipo' => $personal->tipo,
+                'rfc' => $personal->rfc,
+                'numero_checador' => $personal->numero_checador,
                 'activo' => $personal->activo
             ];
 

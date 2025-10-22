@@ -19,8 +19,9 @@ return new class extends Migration
                 'Comprobante de domicilio',
                 'CURP',
                 'INE',
-                'RFC',
-                'Título profesional'
+                'Título profesional',
+                'Constancias de cursos',
+                'Cédula profesional'
             ]);
             $table->string('nombre_archivo');
             $table->string('ruta_archivo');
