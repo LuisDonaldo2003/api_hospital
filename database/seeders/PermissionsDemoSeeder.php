@@ -103,6 +103,8 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'add_personal']);
         Permission::create(['guard_name' => 'api','name' => 'edit_personal']);
         Permission::create(['guard_name' => 'api','name' => 'delete_personal']);
+        Permission::create(['guard_name' => 'api','name' => 'view_documents_personal']);
+        Permission::create(['guard_name' => 'api','name' => 'toggle_status_personal']);
 
         //Creditos
         Permission::create(['guard_name' => 'api','name' => 'view_credits']);
@@ -308,6 +310,8 @@ class PermissionsDemoSeeder extends Seeder
             'list_personal',
             'edit_personal',
             'delete_personal',
+            'view_documents_personal',
+            'toggle_status_personal',
         ];
         $roleHumanResources->syncPermissions($ingeHumanResourcesPermissions);
 
