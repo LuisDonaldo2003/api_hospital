@@ -302,6 +302,18 @@ class PermissionsDemoSeeder extends Seeder
         $userArchive->assignRole($roleArchive);
 
 
+        //Estadistica
+        $roleStatistics = Role::create(['guard_name' => 'api','name' => 'Estadistica']);
+        $ingeStatisticsPermissions = [
+            'add_archive',
+            'list_archive',
+            'edit_archive',
+            'delete_archive',
+            'archive_dashboard',
+        ];
+        $roleStatistics->syncPermissions($ingeStatisticsPermissions);
+
+
          //Recursos Humanos
         $roleHumanResources = Role::create(['guard_name' => 'api','name' => 'Recursos Humanos']);
         $ingeHumanResourcesPermissions = [
