@@ -104,6 +104,9 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'edit_personal']);
         Permission::create(['guard_name' => 'api','name' => 'delete_personal']);
 
+        //Creditos
+        Permission::create(['guard_name' => 'api','name' => 'view_credits']);
+
 
         // --- ROLES Y USUARIOS ---
 
@@ -122,60 +125,9 @@ class PermissionsDemoSeeder extends Seeder
 
         // Subdirector General (con acceso total)
         $roleSubAdmin = Role::create(['guard_name' => 'api','name' => 'Subdirector General']);
-
-        $subPermissions = [
-            'admin_dashboard',
-            'doctor_dashboard',
-            'patient_dashboard',
-            'archive_dashboard',
-            'register_rol',
-            'list_rol',
-            'edit_rol',
-            'delete_rol',
-            'register_staff',
-            'list_staff',
-            'edit_staff',
-            'delete_staff',
-            'list_organization',
-            'add_archive',
-            'list_archive',
-            'edit_archive',
-            'delete_archive',
-            'add_contract',
-            'list_contract',
-            'edit_contract',
-            'delete_contract',
-            'add_profile-m',
-            'list_profile-m',
-            'edit_profile-m',
-            'delete_profile-m',
-            'add_departament',
-            'list_departament',
-            'edit_departament',
-            'delete_departament',
-            'register_doctor',
-            'list_doctor',
-            'edit_doctor',
-            'delete_doctor',
-            'register_patient',
-            'list_patient',
-            'edit_patient',
-            'delete_patient',
-            'register_appointment',
-            'list_appointment',
-            'edit_appointment',
-            'delete_appointment',
-            'attention_appointment',
-            'show_payment',
-            'edit_payment',
-            'delete_payment',
-            'add_payment',
-            'calendar',
-            'access_pulse',
-            'manage_pulse_access',
-        ];
-
-        $roleSubAdmin->syncPermissions($subPermissions);
+        
+        // Asignar todos los permisos al Subdirector General, igual que el Director General
+        $roleSubAdmin->givePermissionTo(Permission::all());
 
         $userSubdirector = User::updateOrCreate(
             ['email' => 'subdirector@gmail.com'],
