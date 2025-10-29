@@ -82,7 +82,9 @@ class StaffsController extends Controller
             'icloud.com', 'live.com', 'protonmail.com',
             'gmx.com', 'mail.com', 'yahoo.com.mx',
             'hotmail.com.mx', 'outlook.com.mx', 'live.com.mx',
-            'zoho.com'
+            'outlook.es', 'hotmail.es', 'yahoo.es', 'live.com.es',
+            'aol.com', 'msn.com', 'yandex.com', 'mail.ru',
+            'fastmail.com', 'tutanota.com', 'zoho.com'
         ];
         $emailDomain = substr(strrchr($email, "@"), 1);
         if (!in_array($emailDomain, $allowedDomains)) {

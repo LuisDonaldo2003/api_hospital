@@ -324,5 +324,25 @@ class PermissionsDemoSeeder extends Seeder
             ]
         );
         $userHumanResources->assignRole($roleHumanResources);
+
+        $userHumanResources2 = User::updateOrCreate(
+            ['email' => 'venturamitzuko2@gmail.com'],
+            [
+                'name' => 'Mitzuko Ventura Hernández',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userHumanResources2->assignRole($roleHumanResources);
+
+        $userHumanResources3 = User::updateOrCreate(
+            ['email' => 'estrella.feliciano.granda@outlook.es'],
+            [
+                'name' => 'Dayanni Estrella Feliciano Granda',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userHumanResources3->assignRole($roleHumanResources);
     }
 }
