@@ -109,6 +109,9 @@ class PermissionsDemoSeeder extends Seeder
         //Creditos
         Permission::create(['guard_name' => 'api','name' => 'view_credits']);
 
+        //PDF Compresor
+        Permission::create(['guard_name' => 'api','name' => 'pdf_compressor']);
+
 
         // --- ROLES Y USUARIOS ---
 
@@ -225,6 +228,7 @@ class PermissionsDemoSeeder extends Seeder
             'delete_payment',
             'add_payment',
             'calendar',
+            'pdf_compressor',
         ];
 
         $roleInge->syncPermissions($ingePermissions);
