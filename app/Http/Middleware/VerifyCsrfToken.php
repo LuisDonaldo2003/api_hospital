@@ -12,6 +12,10 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        'monitoring_dashboard_laravel',
+        'monitoring_dashboard_laravel/*',
+        'pulse',
+        'pulse/*',
+        'livewire/*',
     ];
 }
