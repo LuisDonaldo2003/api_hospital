@@ -24,6 +24,11 @@ use App\Http\Controllers\Admin\Departament\DepartamentController;
 use App\Http\Controllers\Admin\PulseAccessController;
 use App\Http\Controllers\API\PersonalController;
 use App\Http\Controllers\API\PersonalDocumentController;
+use App\Http\Controllers\API\TeachingController;
+use App\Http\Controllers\API\EvaluacionController;
+use App\Http\Controllers\API\ModalidadController;
+use App\Http\Controllers\API\ParticipacionController;
+use App\Http\Controllers\API\AreaController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -127,6 +132,60 @@ Route::group([
         Route::delete('documentos/{id}', [PersonalDocumentController::class, 'destroy']);
     });
     Route::resource('personal', PersonalController::class);
+
+    // Rutas para Módulo de Enseñanzas (teachings)
+    Route::prefix('teachings')->group(function () {
+        Route::get('/', [TeachingController::class, 'index']);
+        Route::get('/stats', [TeachingController::class, 'stats']);
+        Route::get('/export/excel', [TeachingController::class, 'export']);
+        Route::post('/import/excel', [TeachingController::class, 'import']);
+        
+        // Catálogos - Solo lectura
+        Route::get('/modalidades', [TeachingController::class, 'getModalidades']);
+        Route::get('/participaciones', [TeachingController::class, 'getParticipaciones']);
+        Route::get('/profesiones', [TeachingController::class, 'getProfesiones']);
+        Route::get('/areas', [TeachingController::class, 'getAreas']);
+
+        // CRUD Modalidades
+        Route::prefix('catalogs/modalidades')->group(function () {
+            Route::get('/', [ModalidadController::class, 'index']);
+            Route::post('/', [ModalidadController::class, 'store']);
+            Route::put('/{id}', [ModalidadController::class, 'update']);
+            Route::delete('/{id}', [ModalidadController::class, 'destroy']);
+            Route::patch('/{id}/toggle', [ModalidadController::class, 'toggleStatus']);
+        });
+
+        // CRUD Participaciones
+        Route::prefix('catalogs/participaciones')->group(function () {
+            Route::get('/', [ParticipacionController::class, 'index']);
+            Route::post('/', [ParticipacionController::class, 'store']);
+            Route::put('/{id}', [ParticipacionController::class, 'update']);
+            Route::delete('/{id}', [ParticipacionController::class, 'destroy']);
+            Route::patch('/{id}/toggle', [ParticipacionController::class, 'toggleStatus']);
+        });
+
+        // CRUD Áreas
+        Route::prefix('catalogs/areas')->group(function () {
+            Route::get('/', [AreaController::class, 'index']);
+            Route::post('/', [AreaController::class, 'store']);
+            Route::put('/{id}', [AreaController::class, 'update']);
+            Route::delete('/{id}', [AreaController::class, 'destroy']);
+            Route::patch('/{id}/toggle', [AreaController::class, 'toggleStatus']);
+        });
+
+        // Evaluaciones
+        Route::get('/evaluaciones/pendientes', [EvaluacionController::class, 'pendientes']);
+        Route::get('/evaluaciones', [EvaluacionController::class, 'index']);
+        Route::post('/evaluaciones', [EvaluacionController::class, 'store']);
+        Route::put('/evaluaciones/{id}', [EvaluacionController::class, 'update']);
+        Route::delete('/evaluaciones/{id}', [EvaluacionController::class, 'destroy']);
+
+        // CRUD de teachings
+        Route::get('/{id}', [TeachingController::class, 'show']);
+        Route::post('/', [TeachingController::class, 'store']);
+        Route::put('/{id}', [TeachingController::class, 'update']);
+        Route::delete('/{id}', [TeachingController::class, 'destroy']);
+    });
 });
 
 // Accesos externos directos

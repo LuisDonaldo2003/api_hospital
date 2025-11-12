@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
         LocationSeeder::class,
         ArchiveSeeder::class,
         PriorityLocationSeeder::class,
+        \Database\Seeders\TeachingModalidadesSeeder::class,
+        \Database\Seeders\TeachingParticipacionesSeeder::class,
+        \Database\Seeders\TeachingAreasSeeder::class,
     ]);
 }
 
