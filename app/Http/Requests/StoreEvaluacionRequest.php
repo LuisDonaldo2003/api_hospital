@@ -15,10 +15,11 @@ class StoreEvaluacionRequest extends FormRequest
     {
         return [
             'nombre' => 'required|string|max:255',
-            'especialidad' => 'nullable|string|max:100',
+            'especialidad' => 'required|string|max:100',
             'fecha_inicio' => 'nullable|date',
-            'fecha_limite' => 'nullable|date',
-            'estado' => 'nullable|string|in:PENDIENTE,APROBADO,REPROBADO',
+            'fecha_limite' => 'required|date',
+            'estado' => 'required|string|in:PENDIENTE,APROBADO,REPROBADO',
+            'observaciones' => 'nullable|string|max:1000',
             'teaching_id' => 'nullable|integer|exists:teachings,id',
         ];
     }

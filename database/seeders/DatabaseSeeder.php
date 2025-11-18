@@ -13,20 +13,28 @@ class DatabaseSeeder extends Seeder
     public function run(): void
 {
     $this->call([
+        // Catálogos base del sistema
         DepartamentSeeder::class,
         ProfileSeeder::class,
         ContractTypeSeeder::class,
         PermissionsDemoSeeder::class,
         GenderSeeder::class,
+        
+        // Localización
         CountrySeeder::class,
         StateSeeder::class,
         MunicipalitySeeder::class,
         LocationSeeder::class,
-        ArchiveSeeder::class,
         PriorityLocationSeeder::class,
-        \Database\Seeders\TeachingModalidadesSeeder::class,
-        \Database\Seeders\TeachingParticipacionesSeeder::class,
-        \Database\Seeders\TeachingAreasSeeder::class,
+        
+        // Archivo
+        ArchiveSeeder::class,
+        
+        // Catálogos Teaching (en orden correcto)
+        TeachingModalidadesSeeder::class,      // 21 modalidades
+        TeachingParticipacionesSeeder::class,  // 8 participaciones
+        TeachingAreasSeeder::class,            // 6 áreas (usa tabla 'areas')
+        TeachingCatalogsSeeder::class,         // 15 profesiones
     ]);
 }
 

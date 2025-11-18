@@ -33,6 +33,34 @@ class ParticipacionController extends Controller
     }
 
     /**
+     * Obtener una participación por ID
+     */
+    public function show($id)
+    {
+        try {
+            $participacion = DB::table('participaciones')->where('id', $id)->first();
+
+            if (!$participacion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Participación no encontrada'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $participacion
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener participación',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Crear nueva participación
      */
     public function store(Request $request)

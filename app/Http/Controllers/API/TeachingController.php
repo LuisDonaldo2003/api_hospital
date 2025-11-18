@@ -25,7 +25,11 @@ class TeachingController extends Controller
         }
 
         if ($especialidad = $request->get('especialidad')) {
-            $query->where('area', $especialidad);
+            $query->where('profesion', $especialidad);
+        }
+
+        if ($area = $request->get('area')) {
+            $query->where('area', $area);
         }
 
         if ($modalidad = $request->get('modalidad_id')) {
@@ -122,12 +126,29 @@ class TeachingController extends Controller
     {
         $query = Teaching::query();
 
-        // Apply simple filters (same as index)
+        // Apply filters (same as index)
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
-                  ->orWhere('nombre_evento', 'like', "%{$search}%");
+                  ->orWhere('nombre_evento', 'like', "%{$search}%")
+                  ->orWhere('profesion', 'like', "%{$search}%");
             });
+        }
+
+        if ($especialidad = $request->get('especialidad')) {
+            $query->where('profesion', $especialidad);
+        }
+
+        if ($area = $request->get('area')) {
+            $query->where('area', $area);
+        }
+
+        if ($modalidad = $request->get('modalidad_id')) {
+            $query->where('modalidad_id', $modalidad);
+        }
+
+        if ($participacion = $request->get('participacion_id')) {
+            $query->where('participacion_id', $participacion);
         }
 
         $records = $query->orderBy('fecha', 'desc')->get();
@@ -204,35 +225,23 @@ class TeachingController extends Controller
 
     public function getProfesiones()
     {
-        // Obtener profesiones únicas de los registros existentes
-        $profesiones = Teaching::select('profesion')
-            ->whereNotNull('profesion')
-            ->where('profesion', '!=', '')
-            ->distinct()
-            ->orderBy('profesion')
-            ->pluck('profesion');
+        // Obtener profesiones activas desde la tabla profesiones
+        $profesiones = \DB::table('profesiones')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->pluck('nombre');
         
-        // Agregar profesiones comunes si no existen
-        $profesionesComunes = ['DR.', 'DRA.', 'MIP.', 'EPSS.', 'MDO.', 'LE.', 'L.E.', 'E.L.E', 'ELE.', 'TR.', 'EEI.'];
-        $todasProfesiones = $profesiones->merge($profesionesComunes)->unique()->values();
-        
-        return response()->json(['success' => true, 'data' => $todasProfesiones]);
+        return response()->json(['success' => true, 'data' => $profesiones]);
     }
 
     public function getAreas()
     {
-        // Obtener áreas únicas de los registros existentes
-        $areas = Teaching::select('area')
-            ->whereNotNull('area')
-            ->where('area', '!=', '')
-            ->distinct()
-            ->orderBy('area')
-            ->pluck('area');
+        // Obtener áreas activas desde la tabla areas
+        $areas = \DB::table('areas')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->pluck('nombre');
         
-        // Agregar áreas comunes si no existen
-        $areasComunes = ['MEDICINA', 'ENFERMERIA', 'MEDICO INTERNO DE PREGRADO', 'ENFERMERO PASANTE DE SERVICIO SOCIAL', 'ADMINISTRATIVA'];
-        $todasAreas = $areas->merge($areasComunes)->unique()->values();
-        
-        return response()->json(['success' => true, 'data' => $todasAreas]);
+        return response()->json(['success' => true, 'data' => $areas]);
     }
 }

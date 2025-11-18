@@ -37,7 +37,7 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'edit_staff']);
         Permission::create(['guard_name' => 'api','name' => 'delete_staff']);
 
-        // Pacientes
+        // Pacientes(archivo)
         Permission::create(['guard_name' => 'api','name' => 'add_archive']);
         Permission::create(['guard_name' => 'api','name' => 'list_archive']);
         Permission::create(['guard_name' => 'api','name' => 'edit_archive']);
@@ -98,7 +98,7 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'access_pulse']);
         Permission::create(['guard_name' => 'api','name' => 'manage_pulse_access']);
 
-        //Recursos Humanos
+        //Recursos Humanos (Personal)
         Permission::create(['guard_name' => 'api','name' => 'list_personal']);
         Permission::create(['guard_name' => 'api','name' => 'add_personal']);
         Permission::create(['guard_name' => 'api','name' => 'edit_personal']);
@@ -112,6 +112,27 @@ class PermissionsDemoSeeder extends Seeder
         //PDF Compresor
         Permission::create(['guard_name' => 'api','name' => 'pdf_compressor']);
 
+        //Enseñanza(Asistencias-Evaluaciones-Modalidades-Participaciones-Áreas)
+        Permission::create(['guard_name' => 'api','name' => 'add_teaching']);
+        Permission::create(['guard_name' => 'api','name' => 'list_teaching']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_teaching']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_teaching']);
+        Permission::create(['guard_name' => 'api','name' => 'add_evaluation']);
+        Permission::create(['guard_name' => 'api','name' => 'list_evaluation']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_evaluation']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_evaluation']);
+        Permission::create(['guard_name' => 'api','name' => 'add_modality']);
+        Permission::create(['guard_name' => 'api','name' => 'list_modality']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_modality']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_modality']);
+        Permission::create(['guard_name' => 'api','name' => 'add_stakeholding']);
+        Permission::create(['guard_name' => 'api','name' => 'list_stakeholding']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_stakeholding']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_stakeholding']);
+        Permission::create(['guard_name' => 'api','name' => 'add_area']);
+        Permission::create(['guard_name' => 'api','name' => 'list_area']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_area']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_area']);
 
         // --- ROLES Y USUARIOS ---
 

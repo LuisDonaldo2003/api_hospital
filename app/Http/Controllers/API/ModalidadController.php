@@ -33,6 +33,34 @@ class ModalidadController extends Controller
     }
 
     /**
+     * Obtener una modalidad por ID
+     */
+    public function show($id)
+    {
+        try {
+            $modalidad = DB::table('modalidades')->where('id', $id)->first();
+
+            if (!$modalidad) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Modalidad no encontrada'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $modalidad
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener modalidad',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Crear nueva modalidad
      */
     public function store(Request $request)

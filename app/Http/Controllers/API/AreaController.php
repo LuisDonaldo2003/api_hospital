@@ -15,7 +15,7 @@ class AreaController extends Controller
     public function index()
     {
         try {
-            $areas = DB::table('teaching_areas')
+            $areas = DB::table('areas')
                 ->orderBy('nombre', 'asc')
                 ->get();
 
@@ -33,13 +33,42 @@ class AreaController extends Controller
     }
 
     /**
+     * Obtener un área por ID
+     */
+    public function show($id)
+    {
+        try {
+            $area = DB::table('areas')->where('id', $id)->first();
+
+            if (!$area) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Área no encontrada'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $area
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener área',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Crear nueva área
      */
     public function store(Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|max:100|unique:teaching_areas,nombre',
+                'nombre' => 'required|string|max:255|unique:areas,nombre',
+                'descripcion' => 'nullable|string|max:500',
                 'activo' => 'boolean'
             ]);
 
@@ -51,14 +80,15 @@ class AreaController extends Controller
                 ], 422);
             }
 
-            $id = DB::table('teaching_areas')->insertGetId([
+            $id = DB::table('areas')->insertGetId([
                 'nombre' => strtoupper($request->nombre),
+                'descripcion' => $request->descripcion,
                 'activo' => $request->activo ?? true,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
 
-            $area = DB::table('teaching_areas')->where('id', $id)->first();
+            $area = DB::table('areas')->where('id', $id)->first();
 
             return response()->json([
                 'success' => true,
@@ -81,7 +111,8 @@ class AreaController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|max:100|unique:teaching_areas,nombre,' . $id,
+                'nombre' => 'required|string|max:255|unique:areas,nombre,' . $id,
+                'descripcion' => 'nullable|string|max:500',
                 'activo' => 'boolean'
             ]);
 
@@ -93,15 +124,16 @@ class AreaController extends Controller
                 ], 422);
             }
 
-            DB::table('teaching_areas')
+            DB::table('areas')
                 ->where('id', $id)
                 ->update([
                     'nombre' => strtoupper($request->nombre),
+                    'descripcion' => $request->descripcion,
                     'activo' => $request->activo ?? true,
                     'updated_at' => now()
                 ]);
 
-            $area = DB::table('teaching_areas')->where('id', $id)->first();
+            $area = DB::table('areas')->where('id', $id)->first();
 
             return response()->json([
                 'success' => true,
@@ -124,12 +156,16 @@ class AreaController extends Controller
     {
         try {
             // Verificar si hay teachings usando esta área
-            $count = DB::table('teachings')->where('area', function($query) use ($id) {
-                $area = DB::table('teaching_areas')->where('id', $id)->first();
-                if ($area) {
-                    return $area->nombre;
-                }
-            })->count();
+            $area = DB::table('areas')->where('id', $id)->first();
+            
+            if (!$area) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Área no encontrada'
+                ], 404);
+            }
+            
+            $count = DB::table('teachings')->where('area', $area->nombre)->count();
             
             if ($count > 0) {
                 return response()->json([
@@ -138,7 +174,7 @@ class AreaController extends Controller
                 ], 400);
             }
 
-            DB::table('teaching_areas')->where('id', $id)->delete();
+            DB::table('areas')->where('id', $id)->delete();
 
             return response()->json([
                 'success' => true,
@@ -159,7 +195,7 @@ class AreaController extends Controller
     public function toggleStatus($id)
     {
         try {
-            $area = DB::table('teaching_areas')->where('id', $id)->first();
+            $area = DB::table('areas')->where('id', $id)->first();
             
             if (!$area) {
                 return response()->json([
@@ -168,7 +204,7 @@ class AreaController extends Controller
                 ], 404);
             }
 
-            DB::table('teaching_areas')
+            DB::table('areas')
                 ->where('id', $id)
                 ->update([
                     'activo' => !$area->activo,

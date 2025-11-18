@@ -149,6 +149,7 @@ Route::group([
         // CRUD Modalidades
         Route::prefix('catalogs/modalidades')->group(function () {
             Route::get('/', [ModalidadController::class, 'index']);
+            Route::get('/{id}', [ModalidadController::class, 'show']);
             Route::post('/', [ModalidadController::class, 'store']);
             Route::put('/{id}', [ModalidadController::class, 'update']);
             Route::delete('/{id}', [ModalidadController::class, 'destroy']);
@@ -158,6 +159,7 @@ Route::group([
         // CRUD Participaciones
         Route::prefix('catalogs/participaciones')->group(function () {
             Route::get('/', [ParticipacionController::class, 'index']);
+            Route::get('/{id}', [ParticipacionController::class, 'show']);
             Route::post('/', [ParticipacionController::class, 'store']);
             Route::put('/{id}', [ParticipacionController::class, 'update']);
             Route::delete('/{id}', [ParticipacionController::class, 'destroy']);
@@ -167,18 +169,21 @@ Route::group([
         // CRUD Áreas
         Route::prefix('catalogs/areas')->group(function () {
             Route::get('/', [AreaController::class, 'index']);
+            Route::get('/{id}', [AreaController::class, 'show']);
             Route::post('/', [AreaController::class, 'store']);
             Route::put('/{id}', [AreaController::class, 'update']);
             Route::delete('/{id}', [AreaController::class, 'destroy']);
             Route::patch('/{id}/toggle', [AreaController::class, 'toggleStatus']);
         });
 
-        // Evaluaciones
+        // Evaluaciones (rutas específicas primero, luego genéricas)
+        Route::get('/evaluaciones/stats', [EvaluacionController::class, 'stats']);
         Route::get('/evaluaciones/pendientes', [EvaluacionController::class, 'pendientes']);
-        Route::get('/evaluaciones', [EvaluacionController::class, 'index']);
         Route::post('/evaluaciones', [EvaluacionController::class, 'store']);
+        Route::get('/evaluaciones/{id}', [EvaluacionController::class, 'show']);
         Route::put('/evaluaciones/{id}', [EvaluacionController::class, 'update']);
         Route::delete('/evaluaciones/{id}', [EvaluacionController::class, 'destroy']);
+        Route::get('/evaluaciones', [EvaluacionController::class, 'index']);
 
         // CRUD de teachings
         Route::get('/{id}', [TeachingController::class, 'show']);

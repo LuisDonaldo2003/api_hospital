@@ -42,6 +42,39 @@ class EvaluacionController extends Controller
         ]);
     }
 
+    public function show($id)
+    {
+        $evaluacion = Evaluacion::find($id);
+        if (!$evaluacion) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Evaluación no encontrada'
+            ], 404);
+        }
+        return response()->json([
+            'success' => true, 
+            'data' => $evaluacion
+        ]);
+    }
+
+    public function stats()
+    {
+        $total = Evaluacion::count();
+        $pendientes = Evaluacion::where('estado', 'PENDIENTE')->count();
+        $aprobadas = Evaluacion::where('estado', 'APROBADO')->count();
+        $reprobadas = Evaluacion::where('estado', 'REPROBADO')->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total' => $total,
+                'pendientes' => $pendientes,
+                'aprobadas' => $aprobadas,
+                'reprobadas' => $reprobadas
+            ]
+        ]);
+    }
+
     public function store(StoreEvaluacionRequest $request)
     {
         $data = $request->validated();
