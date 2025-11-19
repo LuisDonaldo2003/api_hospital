@@ -349,6 +349,20 @@ class PermissionsDemoSeeder extends Seeder
             'delete_personal',
             'view_documents_personal',
             'toggle_status_personal',
+            'pdf_compressor',
+            'add_contract',
+            'edit_contract',
+            'list_contract',
+            'delete_contract',
+            'add_profile-m',
+            'edit_profile-m',
+            'list_profile-m',
+            'delete_profile-m',
+            'add_departament',
+            'edit_departament',
+            'list_departament',
+            'delete_departament',
+            
         ];
         $roleHumanResources->syncPermissions($ingeHumanResourcesPermissions);
 
