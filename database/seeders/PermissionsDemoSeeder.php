@@ -110,7 +110,7 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'view_credits']);
 
         //PDF Compresor
-        Permission::create(['guard_name' => 'api','name' => 'pdf_compressor']);
+        Permission::create(['guard_name' => 'api','name' => 'access_pdf_compressor']);
 
         //Enseñanza(Asistencias-Evaluaciones-Modalidades-Participaciones-Áreas)
         Permission::create(['guard_name' => 'api','name' => 'add_teaching']);
@@ -349,7 +349,7 @@ class PermissionsDemoSeeder extends Seeder
             'delete_personal',
             'view_documents_personal',
             'toggle_status_personal',
-            'pdf_compressor',
+            'access_pdf_compressor',
             'add_contract',
             'edit_contract',
             'list_contract',
