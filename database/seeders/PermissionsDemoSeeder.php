@@ -249,7 +249,7 @@ class PermissionsDemoSeeder extends Seeder
             'delete_payment',
             'add_payment',
             'calendar',
-            'pdf_compressor',
+            'access_pdf_compressor',
         ];
 
         $roleInge->syncPermissions($ingePermissions);
