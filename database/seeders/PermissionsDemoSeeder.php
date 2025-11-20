@@ -316,6 +316,8 @@ class PermissionsDemoSeeder extends Seeder
             'edit_archive',
             'delete_archive',
             'archive_dashboard',
+            'backup_archive',
+            'export_archive'
         ];
         $roleArchive->syncPermissions($ingeArchivePermissions);
 
