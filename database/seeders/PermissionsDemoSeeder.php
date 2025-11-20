@@ -42,6 +42,9 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'list_archive']);
         Permission::create(['guard_name' => 'api','name' => 'edit_archive']);
         Permission::create(['guard_name' => 'api','name' => 'delete_archive']);
+        Permission::create(['guard_name' => 'api','name' => 'export_archive']);
+        Permission::create(['guard_name' => 'api','name' => 'backup_archive']);
+        
 
         //Contracts
         Permission::create(['guard_name' => 'api','name' => 'add_contract']);
@@ -335,6 +338,8 @@ class PermissionsDemoSeeder extends Seeder
             'edit_archive',
             'delete_archive',
             'archive_dashboard',
+            'backup_archive',
+            'export_archive'
         ];
         $roleStatistics->syncPermissions($ingeStatisticsPermissions);
 
@@ -395,5 +400,43 @@ class PermissionsDemoSeeder extends Seeder
             ]
         );
         $userHumanResources3->assignRole($roleHumanResources);
+
+
+        //Enseñanza
+        $roleEnseñanza = Role::create(['guard_name' => 'api','name' => 'Enseñanza']);
+        $EnseñanzaPermissions = [
+            'admin_dashboard',
+            'add_teaching',
+            'list_teaching',
+            'edit_teaching',
+            'delete_teaching',
+            'add_evaluation',
+            'list_evaluation',
+            'edit_evaluation',
+            'delete_evaluation',
+            'add_modality',
+            'edit_modality',
+            'list_modality',
+            'delete_modality',
+            'add_stakeholding',
+            'edit_stakeholding',
+            'list_stakeholding',
+            'delete_stakeholding',
+            'add_area',
+            'edit_area',
+            'list_area',
+            'delete_area',        
+        ];
+        $roleEnseñanza->syncPermissions($EnseñanzaPermissions);
+
+        $userEnseñanza = User::updateOrCreate(
+            ['email' => 'ensenanza@gmail.com'],
+            [
+                'name' => 'Enseñanza User',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userEnseñanza->assignRole($roleEnseñanza);
     }
 }
