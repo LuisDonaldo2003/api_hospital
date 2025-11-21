@@ -168,94 +168,10 @@ class PermissionsDemoSeeder extends Seeder
         );
         $userSubdirector->assignRole($roleSubAdmin);
 
-        // // Doctor con permisos específicos
-        // $roleDoctor = Role::create(['guard_name' => 'api','name' => 'Doctor']);
+         // Developer con todos los permisos
+        $roleInge = Role::create(['guard_name' => 'api','name' => 'Desarrollador']);
 
-        // $doctorPermissions = [
-        //     'list_doctor',
-        //     'edit_doctor',
-        //     'profile_doctor',
-        //     'register_patient',
-        //     'list_patient',
-        //     'edit_patient',
-        //     'delete_patient',
-        //     'profile_patient',
-        //     'register_appointment',
-        //     'list_appointment',
-        //     'edit_appointment',
-        //     'delete_appointment',
-        //     'attention_appointment',
-        //     'calendar',
-        // ];
-
-        // $roleDoctor->syncPermissions($doctorPermissions);
-
-        // $userDoctor = User::updateOrCreate(
-        //     ['email' => 'doctor@gmail.com'],
-        //     [
-        //         'name' => 'Doctor User',
-        //         'password' => Hash::make('12345678'),
-        //         'email_verified_at' => now(),
-        //     ]
-        // );
-        // $userDoctor->assignRole($roleDoctor);
-
-
-         // Developer con permisos específicos
-        $roleInge = Role::create(['guard_name' => 'api','name' => 'Developer']);
-
-        $ingePermissions = [
-            'admin_dashboard',
-            'doctor_dashboard',
-            'patient_dashboard',
-            'archive_dashboard',
-            'register_rol',
-            'list_rol',
-            'edit_rol',
-            'delete_rol',
-            'register_staff',
-            'list_staff',
-            'edit_staff',
-            'delete_staff',
-            'list_organization',
-            'add_archive',
-            'list_archive',
-            'edit_archive',
-            'delete_archive',
-            'add_contract',
-            'list_contract',
-            'edit_contract',
-            'delete_contract',
-            'add_profile-m',
-            'list_profile-m',
-            'edit_profile-m',
-            'delete_profile-m',
-            'add_departament',
-            'list_departament',
-            'edit_departament',
-            'delete_departament',
-            'register_doctor',
-            'list_doctor',
-            'edit_doctor',
-            'delete_doctor',
-            'register_patient',
-            'list_patient',
-            'edit_patient',
-            'delete_patient',
-            'register_appointment',
-            'list_appointment',
-            'edit_appointment',
-            'delete_appointment',
-            'attention_appointment',
-            'show_payment',
-            'edit_payment',
-            'delete_payment',
-            'add_payment',
-            'calendar',
-            'access_pdf_compressor',
-        ];
-
-        $roleInge->syncPermissions($ingePermissions);
+        $roleInge ->givePermissionTo(Permission::all());
 
         $userDeveloper = User::updateOrCreate(
             ['email' => 'monsterpark1000@gmail.com'],
