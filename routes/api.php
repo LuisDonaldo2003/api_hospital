@@ -50,6 +50,7 @@ Route::group([
     Route::post('/list', [AuthController::class, 'list']);
     Route::post('/reg', [AuthController::class, 'reg']);
     Route::post('/heartbeat', [AuthController::class, 'heartbeat'])->name('heartbeat');
+    Route::post('/check-ban', [AuthController::class, 'checkBanStatus'])->name('check-ban');
 });
 
 // Verificación de cuenta

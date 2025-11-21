@@ -80,8 +80,82 @@ class AuthController extends Controller
 
         $user = auth('api')->user();
 
-        // Marcar al usuario como en línea con expiración de 2 minutos
+        // ======================================
+        // SISTEMA DE DETECCIÓN DE CAMBIOS RÁPIDOS
+        // ======================================
+        
+        // Verificar si la cuenta está temporalmente bloqueada
+        $banKey = 'user-login-ban-' . $user->id;
+        if (\Cache::has($banKey)) {
+            $banData = \Cache::get($banKey);
+            $remainingSeconds = $banData['expires_at'] - now()->timestamp;
+            
+            if ($remainingSeconds > 0) {
+                return response()->json([
+                    'error' => 'Account temporarily locked',
+                    'message' => 'Tu cuenta ha sido bloqueada temporalmente debido a múltiples cambios de sesión',
+                    'banned' => true,
+                    'ban_time_remaining' => $remainingSeconds
+                ], 403);
+            } else {
+                // El baneo expiró, limpiar
+                \Cache::forget($banKey);
+            }
+        }
+
+        // Registrar el timestamp del login actual
+        $loginAttemptsKey = 'user-login-attempts-' . $user->id;
+        $loginAttempts = \Cache::get($loginAttemptsKey, []);
+        
+        // Agregar el timestamp actual
+        $loginAttempts[] = now()->timestamp;
+        
+        // Filtrar solo los últimos 5 minutos (300 segundos)
+        $fiveMinutesAgo = now()->subMinutes(5)->timestamp;
+        $recentAttempts = array_filter($loginAttempts, function($timestamp) use ($fiveMinutesAgo) {
+            return $timestamp >= $fiveMinutesAgo;
+        });
+        
+        // Reindexar el array
+        $recentAttempts = array_values($recentAttempts);
+        
+        // Si hay 5 o más intentos en los últimos 5 minutos, bloquear por 5 minutos
+        if (count($recentAttempts) >= 5) {
+            $banExpiresAt = now()->addMinutes(5)->timestamp;
+            \Cache::put($banKey, [
+                'expires_at' => $banExpiresAt,
+                'reason' => 'Multiple rapid session changes detected'
+            ], 300); // 5 minutos
+            
+            // Limpiar los intentos
+            \Cache::forget($loginAttemptsKey);
+            
+            return response()->json([
+                'error' => 'Account temporarily locked',
+                'message' => 'Se han detectado múltiples cambios de sesión. Por seguridad, tu cuenta ha sido bloqueada por 5 minutos',
+                'banned' => true,
+                'ban_time_remaining' => 300
+            ], 403);
+        }
+        
+        // Guardar los intentos actualizados (expiran en 10 minutos)
+        \Cache::put($loginAttemptsKey, $recentAttempts, 600);
+
+        // ======================================
+        // SISTEMA DE SESIONES CONCURRENTES
+        // ======================================
+        
+        // Generar un nuevo session_id único para esta sesión
+        $newSessionId = \Str::uuid()->toString();
+        
+        // Guardar el nuevo session_id en la base de datos
+        $user->session_id = $newSessionId;
+        $user->session_created_at = now();
+        $user->save();
+        
+        // Marcar al usuario como en línea con el nuevo session_id
         \Cache::put('user-is-online-' . $user->id, now()->timestamp, 120); // 2 minutos
+        \Cache::put('user-session-' . $user->id, $newSessionId, 7200); // 2 horas
 
         if (is_null($user->email_verified_at)) {
             $expired = true;
@@ -105,7 +179,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        return $this->respondWithToken($token);
+        return $this->respondWithToken($token, $newSessionId);
     }
 
     public function me()
@@ -130,7 +204,14 @@ class AuthController extends Controller
     {
         $user = auth('api')->user();
         if ($user) {
+            // Limpiar session_id de la base de datos
+            $user->session_id = null;
+            $user->session_created_at = null;
+            $user->save();
+            
+            // Limpiar caches
             \Cache::forget('user-is-online-' . $user->id);
+            \Cache::forget('user-session-' . $user->id);
         }
         auth()->logout();
         return response()->json(['message' => 'Successfully logged out']);
@@ -139,12 +220,33 @@ class AuthController extends Controller
     public function heartbeat()
     {
         $user = auth('api')->user();
-        if ($user) {
-            // Actualizar timestamp de actividad
-            \Cache::put('user-is-online-' . $user->id, now()->timestamp, 90); // 2 minutos
-            return response()->json(['message' => 'Heartbeat updated']);
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
-        return response()->json(['error' => 'Unauthorized'], 401);
+
+        // Obtener el session_id del cliente (enviado en el header o body)
+        $clientSessionId = request()->header('X-Session-ID') ?? request()->input('session_id');
+        
+        // Obtener el session_id actual del usuario en la BD
+        $currentSessionId = $user->session_id;
+        
+        // Verificar si hay un session_id y si coincide con el actual
+        if ($clientSessionId && $currentSessionId && $clientSessionId !== $currentSessionId) {
+            // La sesión del cliente no es la actual - fue cerrada por otro login
+            return response()->json([
+                'error' => 'Session closed',
+                'message' => 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo',
+                'session_closed' => true
+            ], 401);
+        }
+        
+        // Actualizar timestamp de actividad
+        \Cache::put('user-is-online-' . $user->id, now()->timestamp, 120); // 2 minutos
+        
+        return response()->json([
+            'message' => 'Heartbeat updated',
+            'session_valid' => true
+        ]);
     }
 
     public function refresh()
@@ -152,16 +254,17 @@ class AuthController extends Controller
         return $this->respondWithToken(auth()->refresh());
     }
 
-    protected function respondWithToken($token)
+    protected function respondWithToken($token, $sessionId = null)
     {
         $user = auth('api')->user();
 
         $permissions = $user->getAllPermissions()->pluck('name');
 
-        return response()->json([
+        $response = [
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'session_id' => $sessionId ?? $user->session_id,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -173,7 +276,9 @@ class AuthController extends Controller
                 'permissions' => $permissions,
             ],
             'is_profile_complete' => $user->isProfileComplete(),
-        ]);
+        ];
+
+        return response()->json($response);
     }
 
     public function verifyCode(Request $request)
@@ -198,6 +303,7 @@ class AuthController extends Controller
         $user->save();
 
         $token = auth('api')->login($user);
+        
         return $this->respondWithToken($token);
     }
 
@@ -253,5 +359,39 @@ class AuthController extends Controller
         $user->save();
 
         return response()->json(['message' => 'Contraseña actualizada correctamente.']);
+    }
+
+    /**
+     * Verifica si un usuario está temporalmente bloqueado
+     */
+    public function checkBanStatus(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        
+        $user = User::where('email', $request->email)->first();
+        
+        if (!$user) {
+            return response()->json(['banned' => false]);
+        }
+        
+        $banKey = 'user-login-ban-' . $user->id;
+        
+        if (\Cache::has($banKey)) {
+            $banData = \Cache::get($banKey);
+            $remainingSeconds = $banData['expires_at'] - now()->timestamp;
+            
+            if ($remainingSeconds > 0) {
+                return response()->json([
+                    'banned' => true,
+                    'message' => 'Tu cuenta está temporalmente bloqueada debido a múltiples cambios de sesión',
+                    'ban_time_remaining' => $remainingSeconds
+                ]);
+            } else {
+                // El baneo expiró
+                \Cache::forget($banKey);
+            }
+        }
+        
+        return response()->json(['banned' => false]);
     }
 }

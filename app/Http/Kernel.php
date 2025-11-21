@@ -66,5 +66,6 @@ class Kernel extends HttpKernel
         'auth.jwt' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
         'pulse.director' => \App\Http\Middleware\PulseDirectorAuth::class,
         'pulse.inject' => \App\Http\Middleware\InjectPulseLogout::class,
+        'session.conflict' => \App\Http\Middleware\CheckSessionConflict::class,
     ];
 }
