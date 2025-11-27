@@ -14,6 +14,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\Admin\Rol\RolesController;
+use App\Http\Controllers\Admin\RoleFamily\RoleFamilyController;
 use App\Http\Controllers\Admin\State\StateController;
 use App\Http\Controllers\Admin\Staff\StaffsController;
 use App\Http\Controllers\Admin\Archive\ArchiveController;
@@ -95,6 +96,8 @@ Route::group([
     // Recursos principales
     Route::resource("archives", ArchiveController::class);
     Route::resource("roles", RolesController::class);
+    Route::resource("role-families", RoleFamilyController::class);
+    Route::post("role-families/{id}/assign-roles", [RoleFamilyController::class, "assignRoles"]);
 
     Route::get("staffs/config", [StaffsController::class, "config"]);
     Route::post("staffs/{id}", [StaffsController::class, "update"]);

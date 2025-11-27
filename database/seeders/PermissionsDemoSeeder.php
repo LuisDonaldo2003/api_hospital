@@ -24,12 +24,19 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'doctor_dashboard']);
         Permission::create(['guard_name' => 'api','name' => 'patient_dashboard']);
         Permission::create(['guard_name' => 'api','name' => 'archive_dashboard']);
+        Permission::create(['guard_name' => 'api','name' => 'user_activity_dashboard']);
 
         // Roles y Permisos
         Permission::create(['guard_name' => 'api','name' => 'register_rol']);
         Permission::create(['guard_name' => 'api','name' => 'list_rol']);
         Permission::create(['guard_name' => 'api','name' => 'edit_rol']);
         Permission::create(['guard_name' => 'api','name' => 'delete_rol']);
+
+        // Familias de Roles
+        Permission::create(['guard_name' => 'api','name' => 'register_role_family']);
+        Permission::create(['guard_name' => 'api','name' => 'list_role_family']);
+        Permission::create(['guard_name' => 'api','name' => 'edit_role_family']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_role_family']);
 
         // Users
         Permission::create(['guard_name' => 'api','name' => 'register_staff']);
@@ -251,15 +258,20 @@ class PermissionsDemoSeeder extends Seeder
         //Estadistica
         $roleStatistics = Role::create(['guard_name' => 'api','name' => 'Estadistica']);
         $ingeStatisticsPermissions = [
-            'add_archive',
             'list_archive',
-            'edit_archive',
-            'delete_archive',
             'archive_dashboard',
-            'backup_archive',
-            'export_archive'
         ];
         $roleStatistics->syncPermissions($ingeStatisticsPermissions);
+
+         $userStatistics = User::updateOrCreate(
+            ['email' => 'estadistica@gmail.com'],
+            [
+                'name' => 'Estadistica User',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userStatistics->assignRole($roleStatistics);
 
 
          //Recursos Humanos

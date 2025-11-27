@@ -45,12 +45,114 @@ class StaffsController extends Controller
 
     public function config()
     {
+        $user = auth()->user();
+        
+        // Definir roles de super admin que pueden ver todos los roles
+        $superAdminRoles = ['Director General', 'Subdirector General', 'Desarrollador'];
+        
+        // Verificar si el usuario tiene un rol de super admin
+        $isSuperAdmin = $user->roles->pluck('name')->intersect($superAdminRoles)->isNotEmpty();
+        
+        if ($isSuperAdmin) {
+            // Super admins ven todos los roles
+            $availableRoles = Role::all();
+        } else {
+            // Obtener familias de roles desde la base de datos con sus roles
+            $roleFamilies = \App\Models\RoleFamily::with('roles')->get();
+            
+            if ($roleFamilies->isEmpty()) {
+                // Si no hay familias configuradas, usar lógica legacy
+                $availableRoles = $this->getLegacyFilteredRoles($user);
+            } else {
+                // Obtener el(los) rol(es) actual(es) del usuario
+                $userRoles = $user->roles;
+                
+                // Identificar a qué familias pertenece el usuario basándose en sus roles
+                $userFamilyIds = [];
+                foreach ($roleFamilies as $family) {
+                    // Verificar si alguno de los roles del usuario está en esta familia
+                    foreach ($userRoles as $userRole) {
+                        if ($family->roles->contains('id', $userRole->id)) {
+                            $userFamilyIds[] = $family->id;
+                            break; // Ya encontramos que esta familia contiene un rol del usuario
+                        }
+                    }
+                }
+                
+                // Si el usuario no pertenece a ninguna familia, usar lógica legacy
+                if (empty($userFamilyIds)) {
+                    $availableRoles = $this->getLegacyFilteredRoles($user);
+                } else {
+                    // Obtener TODOS los roles que pertenecen a las familias del usuario
+                    $availableRoles = collect();
+                    $userFamilies = $roleFamilies->whereIn('id', $userFamilyIds);
+                    
+                    foreach ($userFamilies as $family) {
+                        foreach ($family->roles as $role) {
+                            // Evitar duplicados (un rol podría estar en múltiples familias)
+                            if (!$availableRoles->contains('id', $role->id)) {
+                                $availableRoles->push($role);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         return response()->json([
-            "roles" => Role::all(),
+            "roles" => $availableRoles,
             "departaments" => Departaments::select("id", "name")->get(),
             "profiles" => Profile::select("id", "name")->get(),
             "contractTypes" => ContractType::select("id", "name")->get(),
         ]);
+    }
+    
+    /**
+     * Método legacy para filtrar roles cuando no hay familias en la BD
+     */
+    private function getLegacyFilteredRoles($user)
+    {
+        $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+        
+        $userPermissionFamilies = collect($userPermissions)
+            ->map(function ($permission) {
+                $parts = explode('_', $permission);
+                return $parts[0];
+            })
+            ->unique()
+            ->toArray();
+        
+        $userPermissionSuffixes = collect($userPermissions)
+            ->map(function ($permission) {
+                $parts = explode('_', $permission, 2);
+                return count($parts) > 1 ? $parts[1] : null;
+            })
+            ->filter()
+            ->unique()
+            ->toArray();
+        
+        $userPermissionKeywords = array_merge($userPermissionFamilies, $userPermissionSuffixes);
+        
+        return Role::with('permissions')->get()->filter(function ($role) use ($userPermissionKeywords) {
+            $rolePermissions = $role->permissions->pluck('name')->toArray();
+            
+            if (empty($rolePermissions)) {
+                return false;
+            }
+            
+            foreach ($rolePermissions as $rolePermission) {
+                $roleParts = explode('_', $rolePermission);
+                $rolePrefix = $roleParts[0];
+                $roleSuffix = count($roleParts) > 1 ? implode('_', array_slice($roleParts, 1)) : null;
+                
+                if (in_array($rolePrefix, $userPermissionKeywords) || 
+                    ($roleSuffix && in_array($roleSuffix, $userPermissionKeywords))) {
+                    return true;
+                }
+            }
+            
+            return false;
+        })->values();
     }
 
     public function store(Request $request)
