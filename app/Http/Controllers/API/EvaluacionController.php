@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Evaluacion;
 use App\Http\Requests\StoreEvaluacionRequest;
+use App\Services\ActivityLoggerService;
 
 class EvaluacionController extends Controller
 {
@@ -14,6 +15,8 @@ class EvaluacionController extends Controller
         $perPage = (int) $request->get('per_page', 10);
         $q = Evaluacion::query();
         $p = $q->orderBy('fecha_inicio')->paginate($perPage);
+
+        ActivityLoggerService::logRead('Evaluation', null, 'evaluaciones', ['total_records' => $p->total()]);
 
         return response()->json([
             'success' => true,
@@ -30,6 +33,12 @@ class EvaluacionController extends Controller
     public function pendientes()
     {
         $p = Evaluacion::where('estado', 'PENDIENTE')->orderBy('fecha_inicio')->paginate(15);
+
+        ActivityLoggerService::logRead('Evaluation', null, 'evaluaciones', [
+            'filter' => 'pendientes',
+            'total_records' => $p->total()
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $p->items(),
@@ -51,6 +60,9 @@ class EvaluacionController extends Controller
                 'message' => 'Evaluación no encontrada'
             ], 404);
         }
+
+        ActivityLoggerService::logRead('Evaluation', $evaluacion->id, 'evaluaciones', ['teaching_id' => $evaluacion->teaching_id]);
+
         return response()->json([
             'success' => true, 
             'data' => $evaluacion
@@ -79,6 +91,9 @@ class EvaluacionController extends Controller
     {
         $data = $request->validated();
         $evaluacion = Evaluacion::create($data);
+
+        ActivityLoggerService::logCreate('Evaluation', $evaluacion->id, 'evaluaciones', ['teaching_id' => $evaluacion->teaching_id]);
+
         return response()->json(['success' => true, 'data' => $evaluacion]);
     }
 
@@ -86,7 +101,13 @@ class EvaluacionController extends Controller
     {
         $evaluacion = Evaluacion::find($id);
         if (!$evaluacion) return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
+
+        $oldValues = ['estado' => $evaluacion->estado];
         $evaluacion->update($request->all());
+        $newValues = ['estado' => $evaluacion->estado];
+
+        ActivityLoggerService::logUpdate('Evaluation', $evaluacion->id, 'evaluaciones', $oldValues, $newValues);
+
         return response()->json(['success' => true, 'data' => $evaluacion]);
     }
 
@@ -94,6 +115,9 @@ class EvaluacionController extends Controller
     {
         $evaluacion = Evaluacion::find($id);
         if (!$evaluacion) return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
+
+        ActivityLoggerService::logDelete('Evaluation', $evaluacion->id, 'evaluaciones', ['teaching_id' => $evaluacion->teaching_id]);
+
         $evaluacion->delete();
         return response()->json(['success' => true, 'message' => 'Eliminada']);
     }

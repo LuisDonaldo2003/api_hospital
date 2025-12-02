@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLoggerService;
 
 class ParticipacionController extends Controller
 {
@@ -18,6 +19,8 @@ class ParticipacionController extends Controller
             $participaciones = DB::table('participaciones')
                 ->orderBy('nombre', 'asc')
                 ->get();
+
+            ActivityLoggerService::logRead('Stakeholding', null, 'participaciones', ['total_records' => count($participaciones)]);
 
             return response()->json([
                 'success' => true,
@@ -46,6 +49,8 @@ class ParticipacionController extends Controller
                     'message' => 'Participación no encontrada'
                 ], 404);
             }
+
+            ActivityLoggerService::logRead('Stakeholding', $id, 'participaciones', ['nombre' => $participacion->nombre]);
 
             return response()->json([
                 'success' => true,
@@ -87,6 +92,8 @@ class ParticipacionController extends Controller
             ]);
 
             $participacion = DB::table('participaciones')->where('id', $id)->first();
+
+            ActivityLoggerService::logCreate('Stakeholding', $id, 'participaciones', ['nombre' => $request->nombre]);
 
             return response()->json([
                 'success' => true,
@@ -131,6 +138,8 @@ class ParticipacionController extends Controller
 
             $participacion = DB::table('participaciones')->where('id', $id)->first();
 
+            ActivityLoggerService::logUpdate('Stakeholding', $id, 'participaciones', [], ['nombre' => $request->nombre]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Participación actualizada correctamente',
@@ -160,6 +169,8 @@ class ParticipacionController extends Controller
                     'message' => "No se puede eliminar. Hay {$count} registro(s) usando esta participación."
                 ], 400);
             }
+
+            ActivityLoggerService::logDelete('Stakeholding', $id, 'participaciones', []);
 
             DB::table('participaciones')->where('id', $id)->delete();
 

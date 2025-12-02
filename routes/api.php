@@ -30,6 +30,7 @@ use App\Http\Controllers\API\EvaluacionController;
 use App\Http\Controllers\API\ModalidadController;
 use App\Http\Controllers\API\ParticipacionController;
 use App\Http\Controllers\API\AreaController;
+use App\Http\Controllers\LicenseController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -38,6 +39,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Rutas de mantenimiento (accesibles siempre)
 Route::get('/maintenance/status', [MaintenanceController::class, 'status']);
 Route::get('/maintenance/check', [MaintenanceController::class, 'check']);
+
+// Rutas de licencia (accesibles siempre para verificar estado)
+Route::get('/license/status', [LicenseController::class, 'status']);
+Route::get('/license/info', [LicenseController::class, 'info']);
+Route::get('/license/check-feature', [LicenseController::class, 'checkFeature']);
+Route::post('/license/upload', [LicenseController::class, 'upload']); // Sin autenticación para permitir activación inicial
+
+// Rutas de gestión de licencia (requiere autenticación)
+Route::middleware('auth:api')->group(function () {
+    Route::get('/license/history', [LicenseController::class, 'history']);
+});
 
 // Autenticación
 Route::group([
@@ -79,9 +91,9 @@ Route::post('/forgot-password/send-code', [AuthController::class, 'sendRecoveryC
 Route::post('/forgot-password/verify-code', [AuthController::class, 'verifyRecoveryCode']);
 Route::post('/forgot-password/reset', [AuthController::class, 'resetPassword']);
 
-// Rutas protegidas con token
+// Rutas protegidas con token y verificación de licencia
 Route::group([
-    'middleware' => 'auth:api',
+    'middleware' => ['auth:api', 'check.license'],
 ], function () {
 
     // Estadísticas Dashboard Archivo

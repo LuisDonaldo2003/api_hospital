@@ -8,6 +8,7 @@ use App\Models\Teaching;
 use App\Http\Requests\StoreTeachingRequest;
 use App\Http\Requests\UpdateTeachingRequest;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\ActivityLoggerService;
 
 class TeachingController extends Controller
 {
@@ -54,6 +55,11 @@ class TeachingController extends Controller
 
         $p = $query->orderBy('fecha', 'desc')->paginate($perPage);
 
+        // Registrar actividad de lectura
+        ActivityLoggerService::logRead('Assistant', null, 'teachings', [
+            'total_records' => $p->total()
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $p->items(),
@@ -72,6 +78,12 @@ class TeachingController extends Controller
         if (!$teaching) {
             return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
         }
+
+        // Registrar actividad de lectura
+        ActivityLoggerService::logRead('Assistant', $teaching->id, 'teachings', [
+            'nombre' => $teaching->nombre
+        ]);
+
         return response()->json(['success' => true, 'data' => $teaching]);
     }
 
@@ -79,6 +91,13 @@ class TeachingController extends Controller
     {
         $data = $request->validated();
         $teaching = Teaching::create($data);
+
+        // Registrar actividad de creación
+        ActivityLoggerService::logCreate('Assistant', $teaching->id, 'teachings', [
+            'nombre' => $teaching->nombre,
+            'nombre_evento' => $teaching->nombre_evento
+        ]);
+
         return response()->json(['success' => true, 'data' => $teaching]);
     }
 
@@ -88,7 +107,22 @@ class TeachingController extends Controller
         if (!$teaching) {
             return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
         }
+
+        // Guardar valores antiguos para el log
+        $oldValues = [
+            'nombre' => $teaching->nombre,
+            'nombre_evento' => $teaching->nombre_evento
+        ];
+
         $teaching->update($request->validated());
+
+        // Registrar actividad de actualización
+        $newValues = [
+            'nombre' => $teaching->nombre,
+            'nombre_evento' => $teaching->nombre_evento
+        ];
+        ActivityLoggerService::logUpdate('Assistant', $teaching->id, 'teachings', $oldValues, $newValues);
+
         return response()->json(['success' => true, 'data' => $teaching]);
     }
 
@@ -98,6 +132,13 @@ class TeachingController extends Controller
         if (!$teaching) {
             return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
         }
+
+        // Registrar actividad de eliminación
+        ActivityLoggerService::logDelete('Assistant', $teaching->id, 'teachings', [
+            'nombre' => $teaching->nombre,
+            'nombre_evento' => $teaching->nombre_evento
+        ]);
+
         $teaching->delete();
         return response()->json(['success' => true, 'message' => 'Eliminado correctamente']);
     }

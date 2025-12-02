@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLoggerService;
 
 class AreaController extends Controller
 {
@@ -18,6 +19,8 @@ class AreaController extends Controller
             $areas = DB::table('areas')
                 ->orderBy('nombre', 'asc')
                 ->get();
+
+            ActivityLoggerService::logRead('Area', null, 'areas', ['total_records' => count($areas)]);
 
             return response()->json([
                 'success' => true,
@@ -46,6 +49,8 @@ class AreaController extends Controller
                     'message' => 'Área no encontrada'
                 ], 404);
             }
+
+            ActivityLoggerService::logRead('Area', $id, 'areas', ['nombre' => $area->nombre]);
 
             return response()->json([
                 'success' => true,
@@ -89,6 +94,8 @@ class AreaController extends Controller
             ]);
 
             $area = DB::table('areas')->where('id', $id)->first();
+
+            ActivityLoggerService::logCreate('Area', $id, 'areas', ['nombre' => $request->nombre]);
 
             return response()->json([
                 'success' => true,
@@ -135,6 +142,8 @@ class AreaController extends Controller
 
             $area = DB::table('areas')->where('id', $id)->first();
 
+            ActivityLoggerService::logUpdate('Area', $id, 'areas', [], ['nombre' => $request->nombre]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Área actualizada correctamente',
@@ -173,6 +182,8 @@ class AreaController extends Controller
                     'message' => "No se puede eliminar. Hay {$count} registro(s) usando esta área."
                 ], 400);
             }
+
+            ActivityLoggerService::logDelete('Area', $id, 'areas', []);
 
             DB::table('areas')->where('id', $id)->delete();
 

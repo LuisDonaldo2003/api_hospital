@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLoggerService;
 
 class ModalidadController extends Controller
 {
@@ -18,6 +19,8 @@ class ModalidadController extends Controller
             $modalidades = DB::table('modalidades')
                 ->orderBy('nombre', 'asc')
                 ->get();
+
+            ActivityLoggerService::logRead('Modality', null, 'modalidades', ['total_records' => count($modalidades)]);
 
             return response()->json([
                 'success' => true,
@@ -46,6 +49,8 @@ class ModalidadController extends Controller
                     'message' => 'Modalidad no encontrada'
                 ], 404);
             }
+
+            ActivityLoggerService::logRead('Modality', $id, 'modalidades', ['nombre' => $modalidad->nombre]);
 
             return response()->json([
                 'success' => true,
@@ -89,6 +94,8 @@ class ModalidadController extends Controller
             ]);
 
             $modalidad = DB::table('modalidades')->where('id', $id)->first();
+
+            ActivityLoggerService::logCreate('Modality', $id, 'modalidades', ['codigo' => $request->codigo, 'nombre' => $request->nombre]);
 
             return response()->json([
                 'success' => true,
@@ -135,6 +142,8 @@ class ModalidadController extends Controller
 
             $modalidad = DB::table('modalidades')->where('id', $id)->first();
 
+            ActivityLoggerService::logUpdate('Modality', $id, 'modalidades', [], ['nombre' => $request->nombre]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Modalidad actualizada correctamente',
@@ -164,6 +173,8 @@ class ModalidadController extends Controller
                     'message' => "No se puede eliminar. Hay {$count} registro(s) usando esta modalidad."
                 ], 400);
             }
+
+            ActivityLoggerService::logDelete('Modality', $id, 'modalidades', []);
 
             DB::table('modalidades')->where('id', $id)->delete();
 
