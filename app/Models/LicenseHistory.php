@@ -17,7 +17,6 @@ class LicenseHistory extends Model
     ];
 
     protected $casts = [
-        'valid_until' => 'date',
         'created_at' => 'datetime',
     ];
 

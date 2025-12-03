@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('institution');
-            $table->date('valid_until')->nullable();
+            $table->string('valid_until')->nullable(); 
             $table->string('uploaded_by');
             $table->string('ip_address', 45);
             $table->string('filename');

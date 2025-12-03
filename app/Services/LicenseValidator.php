@@ -119,6 +119,11 @@ class LicenseValidator
             return false;
         }
 
+        // Licencia permanente
+        if (strtoupper($validUntil) === 'PERMANENT') {
+            return true;
+        }
+
         try {
             $expirationDate = Carbon::parse($validUntil);
             return Carbon::now()->lte($expirationDate);
@@ -139,7 +144,13 @@ class LicenseValidator
 
         $currentDomain = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? gethostname();
         
-        return strtolower($currentDomain) === strtolower($allowedDomain);
+        // Normalizar dominios: remover www. para comparación flexible
+        $normalizedCurrent = preg_replace('/^www\./i', '', strtolower($currentDomain));
+        $normalizedAllowed = preg_replace('/^www\./i', '', strtolower($allowedDomain));
+        
+        // Comparar tanto exacto como sin www
+        return strtolower($currentDomain) === strtolower($allowedDomain) ||
+               $normalizedCurrent === $normalizedAllowed;
     }
 
     /**
@@ -172,15 +183,21 @@ class LicenseValidator
             return null;
         }
 
+        // Licencia permanente
+        if (strtoupper($validUntil) === 'PERMANENT') {
+            return null; // null indica que es permanente
+        }
+
         try {
-            $expirationDate = Carbon::parse($validUntil);
-            $now = Carbon::now();
+            $expirationDate = Carbon::parse($validUntil)->startOfDay();
+            $now = Carbon::now()->startOfDay();
             
             if ($now->gt($expirationDate)) {
                 return 0;
             }
 
-            return (int) $now->diffInDays($expirationDate);
+            // Calcular días incluyendo el día de hoy hasta el día de vencimiento
+            return (int) $now->diffInDays($expirationDate, false);
         } catch (\Exception $e) {
             return null;
         }

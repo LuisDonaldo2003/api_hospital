@@ -62,58 +62,67 @@ function promptLicenseData(): array
     echo "Nombre de la Institución: ";
     $institution = trim(fgets(STDIN));
 
-    // Fecha de expiración
-    echo "Fecha de expiración (YYYY-MM-DD) [ejemplo: 2026-12-31]: ";
-    $validUntil = trim(fgets(STDIN));
+    // Tipo de licencia
+    echo "\nTipo de licencia:\n";
+    echo "1. Mensual (31 días)\n";
+    echo "2. Anual (365 días)\n";
+    echo "3. Permanente (sin vencimiento)\n";
+    echo "4. Fecha personalizada\n";
+    echo "Seleccione opción [1-4]: ";
+    $licenseType = trim(fgets(STDIN));
 
-    // Validar formato de fecha
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $validUntil)) {
-        die("Error: Formato de fecha inválido. Use YYYY-MM-DD\n");
+    $validUntil = '';
+    switch ($licenseType) {
+        case '1':
+            // Mensual: 31 días de duración (hasta el mismo día del mes siguiente)
+            $validUntil = date('Y-m-d', strtotime('+31 days'));
+            echo "→ Expira: $validUntil (31 días de duración)\n";
+            break;
+        case '2':
+            $validUntil = date('Y-m-d', strtotime('+365 days'));
+            echo "→ Expira: $validUntil (365 días de duración)\n";
+            break;
+        case '3':
+            $validUntil = 'PERMANENT';
+            echo "→ Licencia PERMANENTE (sin vencimiento)\n";
+            break;
+        case '4':
+            echo "Fecha de expiración (YYYY-MM-DD) [ejemplo: 2026-12-31]: ";
+            $validUntil = trim(fgets(STDIN));
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $validUntil)) {
+                die("Error: Formato de fecha inválido. Use YYYY-MM-DD\n");
+            }
+            break;
+        default:
+            die("Error: Opción inválida\n");
     }
 
     // Dominio permitido
-    echo "Dominio permitido (deje vacío para cualquier dominio) [ejemplo: hospital.gob.mx]: ";
+    echo "\nDominio permitido:\n";
+    echo "  Presione ENTER para cualquier dominio (*)\n";
+    echo "  O ingrese dominio específico (ejemplo: api_imss.gob.mx)\n";
+    echo "Dominio: ";
     $allowedDomain = trim(fgets(STDIN));
     if (empty($allowedDomain)) {
         $allowedDomain = '*';
+        echo "→ Cualquier dominio permitido\n";
+    } else {
+        // Limpiar www. automáticamente si existe
+        $allowedDomain = preg_replace('/^www\./i', '', $allowedDomain);
+        echo "→ Dominio: $allowedDomain\n";
     }
 
-    // Características/Módulos
-    echo "\nMódulos disponibles:\n";
-    echo "1. modulo_archivo\n";
-    echo "2. modulo_personal\n";
-    echo "3. modulo_ensenanza\n";
-    echo "4. modulo_reportes\n";
-    echo "5. modulo_estadisticas\n";
-    echo "6. modulo_completo (todos los módulos)\n";
-    echo "\nIngrese los números de módulos separados por comas (ejemplo: 1,2,3): ";
-    $modulesInput = trim(fgets(STDIN));
-
-    $availableModules = [
-        1 => 'modulo_archivo',
-        2 => 'modulo_personal',
-        3 => 'modulo_ensenanza',
-        4 => 'modulo_reportes',
-        5 => 'modulo_estadisticas',
-        6 => 'modulo_completo',
+    // Características/Módulos - Siempre todos los módulos
+    echo "\n→ Módulos: TODOS (Acceso completo al sistema)\n";
+    
+    $features = [
+        'modulo_archivo',
+        'modulo_personal',
+        'modulo_ensenanza',
+        'modulo_reportes',
+        'modulo_estadisticas',
+        'modulo_completo'
     ];
-
-    $features = [];
-    $selectedModules = array_map('trim', explode(',', $modulesInput));
-
-    foreach ($selectedModules as $module) {
-        if (isset($availableModules[$module])) {
-            if ($availableModules[$module] === 'modulo_completo') {
-                $features = array_values($availableModules);
-                break;
-            }
-            $features[] = $availableModules[$module];
-        }
-    }
-
-    if (empty($features)) {
-        $features = ['modulo_completo']; // Por defecto todos los módulos
-    }
 
     return [
         'institution' => $institution,
@@ -164,10 +173,15 @@ function displaySummary(array $data, string $filepath): void
     echo "\nArchivo generado: " . $filepath . "\n\n";
     echo "INSTRUCCIONES DE INSTALACIÓN:\n";
     echo "------------------------------\n";
-    echo "1. Envíe el archivo '$filepath' al cliente\n";
-    echo "2. El cliente debe copiarlo en: storage/app/license.key\n";
-    echo "3. Reiniciar el servidor Laravel (si está en caché)\n";
-    echo "4. La licencia se validará automáticamente\n\n";
+    echo "1. Envíe el archivo al cliente\n";
+    echo "   Archivo: $filepath\n\n";
+    echo "2. El cliente debe seguir estos pasos:\n";
+    echo "   a) Acceder al panel web del sistema\n";
+    echo "   b) Ir a la sección 'Subir Licencia'\n";
+    echo "   c) Cargar el archivo .license\n";
+    echo "   d) La licencia se activará automáticamente\n\n";
+    echo "   NOTA: La licencia cuenta desde el día de activación\n";
+    echo "         (ejemplo: activada el 2 dic, mensual vence el 2 ene)\n\n";
 }
 
 // Ejecutar generador
