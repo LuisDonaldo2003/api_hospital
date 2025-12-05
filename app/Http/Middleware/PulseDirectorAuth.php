@@ -12,15 +12,19 @@ class PulseDirectorAuth
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Obtener el path de Pulse desde la configuración
+        $pulsePath = config('pulse.path', 'pulse');
+        
         // Permitir logout sin verificar autenticación
-        if ($request->is('pulse/logout')) {
+        if ($request->is($pulsePath.'/logout') || $request->is('pulse/logout')) {
             return $next($request);
         }
         
         // Verificar si existe una sesión de director válida
         if (!Session::has('pulse_director_authenticated')) {
             // Si es una solicitud para login/authenticate de Pulse, permitir continuar
-            if ($request->is('pulse/login') || $request->is('pulse/authenticate')) {
+            if ($request->is($pulsePath.'/login') || $request->is($pulsePath.'/authenticate') || 
+                $request->is('pulse/login') || $request->is('pulse/authenticate')) {
                 return $next($request);
             }
             
