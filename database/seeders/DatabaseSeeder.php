@@ -35,6 +35,10 @@ class DatabaseSeeder extends Seeder
         TeachingParticipacionesSeeder::class,  // 8 participaciones
         TeachingAreasSeeder::class,            // 6 áreas (usa tabla 'areas')
         TeachingCatalogsSeeder::class,         // 15 profesiones
+        
+        // Catálogos Appointments
+        EspecialidadesSeeder::class,           // Especialidades médicas
+        DoctoresSeeder::class,                 // Doctores del hospital
     ]);
 }
 

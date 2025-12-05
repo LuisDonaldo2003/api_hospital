@@ -30,6 +30,9 @@ use App\Http\Controllers\API\EvaluacionController;
 use App\Http\Controllers\API\ModalidadController;
 use App\Http\Controllers\API\ParticipacionController;
 use App\Http\Controllers\API\AreaController;
+use App\Http\Controllers\API\DoctorController;
+use App\Http\Controllers\API\CitaController;
+use App\Http\Controllers\API\EspecialidadController;
 use App\Http\Controllers\LicenseController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -206,6 +209,45 @@ Route::group([
         Route::post('/', [TeachingController::class, 'store']);
         Route::put('/{id}', [TeachingController::class, 'update']);
         Route::delete('/{id}', [TeachingController::class, 'destroy']);
+    });
+
+    // Rutas para Módulo de Citas Médicas (appointments)
+    Route::prefix('appointments')->group(function () {
+        // Especialidades
+        Route::prefix('especialidades')->group(function () {
+            Route::get('/', [EspecialidadController::class, 'index']);
+            Route::get('/{id}', [EspecialidadController::class, 'show']);
+            Route::post('/', [EspecialidadController::class, 'store']);
+            Route::put('/{id}', [EspecialidadController::class, 'update']);
+            Route::delete('/{id}', [EspecialidadController::class, 'destroy']);
+        });
+
+        // Doctores
+        Route::prefix('doctors')->group(function () {
+            Route::get('/', [DoctorController::class, 'index']);
+            Route::get('/stats', [DoctorController::class, 'stats']);
+            Route::get('/especialidades', [DoctorController::class, 'listEspecialidades']);
+            Route::get('/by-especialidad/{especialidadId}', [DoctorController::class, 'getByEspecialidad']);
+            Route::get('/{id}', [DoctorController::class, 'show']);
+            Route::post('/', [DoctorController::class, 'store']);
+            Route::put('/{id}', [DoctorController::class, 'update']);
+            Route::delete('/{id}', [DoctorController::class, 'destroy']);
+        });
+
+        // Citas
+        Route::prefix('citas')->group(function () {
+            Route::get('/', [CitaController::class, 'index']);
+            Route::get('/stats', [CitaController::class, 'stats']);
+            Route::get('/today', [CitaController::class, 'today']);
+            Route::get('/{id}', [CitaController::class, 'show']);
+            Route::post('/', [CitaController::class, 'store']);
+            Route::put('/{id}', [CitaController::class, 'update']);
+            Route::post('/{id}/cancel', [CitaController::class, 'cancel']);
+            Route::delete('/{id}', [CitaController::class, 'destroy']);
+        });
+
+        // Horarios disponibles
+        Route::get('/horarios-disponibles', [CitaController::class, 'getHorariosDisponibles']);
     });
 });
 
