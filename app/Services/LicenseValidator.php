@@ -2,41 +2,35 @@
 
 namespace App\Services;
 
+use App\Models\License;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class LicenseValidator
 {
-    private const LICENSE_PATH = 'app/license.key';
-    private const ENCRYPTION_KEY = 'hospital-license-key-2025'; // Cambiar por una clave más segura en producción
+    private const ENCRYPTION_KEY = 'hospital-license-key-2025';
+    private const CACHE_KEY = 'system_license_status';
+    private const CACHE_DURATION = 300; // 5 minutos en segundos
 
     /**
-     * Verifica si existe una licencia válida
+     * Verifica si existe una licencia válida en la base de datos
      */
     public static function isValid(): bool
     {
         try {
-            $license = self::readLicense();
-            
-            if (!$license) {
-                return false;
-            }
+            // Usar caché para evitar consultas constantes a la BD
+            return Cache::remember(self::CACHE_KEY, self::CACHE_DURATION, function () {
+                $license = License::valid()->first();
+                
+                if (!$license) {
+                    return false;
+                }
 
-            // Verificar fecha de expiración
-            if (!self::checkExpiration($license['valid_until'])) {
-                return false;
-            }
+                // Actualizar última verificación
+                $license->markAsChecked();
 
-            // Verificar dominio/servidor
-            if (!self::checkDomain($license['allowed_domain'])) {
-                return false;
-            }
-
-            // Verificar firma
-            if (!self::verifySignature($license)) {
-                return false;
-            }
-
-            return true;
+                return true;
+            });
         } catch (\Exception $e) {
             \Log::error('Error validating license: ' . $e->getMessage());
             return false;
@@ -44,24 +38,40 @@ class LicenseValidator
     }
 
     /**
-     * Obtiene información de la licencia
+     * Obtiene la licencia activa actual
+     */
+    public static function getActiveLicense(): ?License
+    {
+        try {
+            return License::valid()->first();
+        } catch (\Exception $e) {
+            \Log::error('Error getting active license: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene información de la licencia activa
      */
     public static function getLicenseInfo(): ?array
     {
         try {
-            $license = self::readLicense();
+            $license = self::getActiveLicense();
             
             if (!$license) {
                 return null;
             }
 
             return [
-                'institution' => $license['institution'] ?? 'N/A',
-                'valid_until' => $license['valid_until'] ?? 'N/A',
-                'allowed_domain' => $license['allowed_domain'] ?? 'N/A',
-                'features' => $license['features'] ?? [],
-                'is_valid' => self::isValid(),
-                'days_remaining' => self::getDaysRemaining($license['valid_until'] ?? null),
+                'institution' => $license->institution ?? 'N/A',
+                'type' => $license->type,
+                'activated_at' => $license->activated_at?->format('Y-m-d H:i:s'),
+                'expires_at' => $license->expires_at?->format('Y-m-d H:i:s') ?? 'PERMANENT',
+                'allowed_domain' => $license->allowed_domain ?? '*',
+                'features' => $license->features ?? [],
+                'is_valid' => $license->isValid(),
+                'days_remaining' => $license->daysRemaining(),
+                'last_checked' => $license->last_checked_at?->diffForHumans(),
             ];
         } catch (\Exception $e) {
             \Log::error('Error getting license info: ' . $e->getMessage());
@@ -70,21 +80,110 @@ class LicenseValidator
     }
 
     /**
-     * Lee y desencripta el archivo de licencia
+     * Procesa y activa un archivo de licencia
      */
-    private static function readLicense(): ?array
+    public static function activateLicense(string $licenseContent, ?int $userId = null, ?string $ip = null): array
     {
-        $licensePath = storage_path(self::LICENSE_PATH);
-
-        if (!file_exists($licensePath)) {
-            \Log::warning('License file not found at: ' . $licensePath);
-            return null;
-        }
-
         try {
-            $encryptedData = file_get_contents($licensePath);
+            // Desencriptar el archivo de licencia
+            $licenseData = self::decryptLicenseFile($licenseContent);
+            
+            if (!$licenseData) {
+                return [
+                    'success' => false,
+                    'message' => 'No se pudo desencriptar el archivo de licencia'
+                ];
+            }
+
+            // Validar estructura del archivo
+            if (!self::validateLicenseStructure($licenseData)) {
+                return [
+                    'success' => false,
+                    'message' => 'Estructura de licencia inválida'
+                ];
+            }
+
+            // Verificar firma digital
+            if (!self::verifySignature($licenseData)) {
+                return [
+                    'success' => false,
+                    'message' => 'Firma digital inválida. El archivo ha sido alterado.'
+                ];
+            }
+
+            // Determinar tipo de licencia y fecha de expiración
+            $type = self::determineLicenseType($licenseData['valid_until'] ?? null);
+            $expiresAt = self::calculateExpirationDate($licenseData['valid_until'] ?? null, $type);
+
+            // Desactivar licencias anteriores
+            License::where('is_active', true)->update(['is_active' => false]);
+
+            // Crear hash único del archivo
+            $licenseKey = hash('sha256', $licenseContent);
+
+            // Verificar si ya existe esta licencia
+            $existingLicense = License::where('license_key', $licenseKey)->first();
+            if ($existingLicense) {
+                // Reactivar licencia existente
+                $existingLicense->update([
+                    'is_active' => true,
+                    'activated_at' => Carbon::now(),
+                    'last_checked_at' => Carbon::now(),
+                    'activated_by' => $userId,
+                    'activation_ip' => $ip,
+                ]);
+
+                $license = $existingLicense;
+            } else {
+                // Crear nueva licencia en la BD
+                $license = License::create([
+                    'institution' => $licenseData['institution'] ?? 'N/A',
+                    'license_key' => $licenseKey,
+                    'license_data' => encrypt(json_encode($licenseData)),
+                    'type' => $type,
+                    'activated_at' => Carbon::now(),
+                    'expires_at' => $expiresAt,
+                    'is_active' => true,
+                    'features' => $licenseData['features'] ?? [],
+                    'allowed_domain' => $licenseData['allowed_domain'] ?? '*',
+                    'signature' => $licenseData['signature'],
+                    'activated_by' => $userId,
+                    'activation_ip' => $ip,
+                    'last_checked_at' => Carbon::now(),
+                ]);
+            }
+
+            // Limpiar caché
+            Cache::forget(self::CACHE_KEY);
+
+            return [
+                'success' => true,
+                'message' => 'Licencia activada correctamente',
+                'license' => [
+                    'institution' => $license->institution,
+                    'type' => $license->type,
+                    'expires_at' => $license->expires_at?->format('Y-m-d') ?? 'PERMANENT',
+                    'days_remaining' => $license->daysRemaining(),
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            \Log::error('Error activating license: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al procesar la licencia: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Desencripta el contenido del archivo de licencia
+     */
+    private static function decryptLicenseFile(string $encryptedContent): ?array
+    {
+        try {
             $decryptedData = openssl_decrypt(
-                $encryptedData,
+                $encryptedContent,
                 'AES-256-CBC',
                 self::ENCRYPTION_KEY,
                 0,
@@ -96,108 +195,99 @@ class LicenseValidator
                 return null;
             }
 
-            $license = json_decode($decryptedData, true);
+            $licenseData = json_decode($decryptedData, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 \Log::error('Invalid JSON in license file');
                 return null;
             }
 
-            return $license;
+            return $licenseData;
         } catch (\Exception $e) {
-            \Log::error('Error reading license: ' . $e->getMessage());
+            \Log::error('Error decrypting license: ' . $e->getMessage());
             return null;
         }
     }
 
     /**
-     * Verifica si la licencia no ha expirado
+     * Valida la estructura del archivo de licencia
      */
-    private static function checkExpiration(?string $validUntil): bool
+    private static function validateLicenseStructure(array $licenseData): bool
     {
-        if (!$validUntil) {
-            return false;
-        }
-
-        // Licencia permanente
-        if (strtoupper($validUntil) === 'PERMANENT') {
-            return true;
-        }
-
-        try {
-            $expirationDate = Carbon::parse($validUntil);
-            return Carbon::now()->lte($expirationDate);
-        } catch (\Exception $e) {
-            \Log::error('Error parsing expiration date: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Verifica que el dominio/servidor coincida
-     */
-    private static function checkDomain(?string $allowedDomain): bool
-    {
-        if (!$allowedDomain || $allowedDomain === '*') {
-            return true; // Licencia sin restricción de dominio
-        }
-
-        $currentDomain = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? gethostname();
+        $requiredFields = ['institution', 'valid_until', 'signature'];
         
-        // Normalizar dominios: remover www. para comparación flexible
-        $normalizedCurrent = preg_replace('/^www\./i', '', strtolower($currentDomain));
-        $normalizedAllowed = preg_replace('/^www\./i', '', strtolower($allowedDomain));
-        
-        // Comparar tanto exacto como sin www
-        return strtolower($currentDomain) === strtolower($allowedDomain) ||
-               $normalizedCurrent === $normalizedAllowed;
+        foreach ($requiredFields as $field) {
+            if (!isset($licenseData[$field])) {
+                \Log::error("Missing required field in license: {$field}");
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
      * Verifica la firma digital de la licencia
      */
-    private static function verifySignature(array $license): bool
+    private static function verifySignature(array $licenseData): bool
     {
-        if (!isset($license['signature'])) {
+        if (!isset($licenseData['signature'])) {
             return false;
         }
 
         $dataToSign = [
-            'institution' => $license['institution'] ?? '',
-            'valid_until' => $license['valid_until'] ?? '',
-            'allowed_domain' => $license['allowed_domain'] ?? '',
-            'features' => $license['features'] ?? [],
+            'institution' => $licenseData['institution'] ?? '',
+            'valid_until' => $licenseData['valid_until'] ?? '',
+            'allowed_domain' => $licenseData['allowed_domain'] ?? '',
+            'features' => $licenseData['features'] ?? [],
         ];
 
         $calculatedSignature = hash_hmac('sha256', json_encode($dataToSign), self::ENCRYPTION_KEY);
 
-        return hash_equals($calculatedSignature, $license['signature']);
+        return hash_equals($calculatedSignature, $licenseData['signature']);
     }
 
     /**
-     * Calcula los días restantes de la licencia
+     * Determina el tipo de licencia basado en la fecha de expiración
      */
-    private static function getDaysRemaining(?string $validUntil): ?int
+    private static function determineLicenseType(?string $validUntil): string
     {
+        if (!$validUntil || strtoupper($validUntil) === 'PERMANENT') {
+            return 'permanent';
+        }
+
+        try {
+            $expirationDate = Carbon::parse($validUntil);
+            $now = Carbon::now();
+            $monthsDiff = $now->diffInMonths($expirationDate);
+
+            if ($monthsDiff <= 1) {
+                return 'monthly';
+            } elseif ($monthsDiff <= 12) {
+                return 'annual';
+            } else {
+                return 'permanent';
+            }
+        } catch (\Exception $e) {
+            return 'permanent';
+        }
+    }
+
+    /**
+     * Calcula la fecha de expiración
+     */
+    private static function calculateExpirationDate(?string $validUntil, string $type): ?Carbon
+    {
+        if ($type === 'permanent') {
+            return null;
+        }
+
         if (!$validUntil) {
             return null;
         }
 
-        // Licencia permanente
-        if (strtoupper($validUntil) === 'PERMANENT') {
-            return null; // null indica que es permanente
-        }
-
         try {
-            $expirationDate = Carbon::parse($validUntil)->startOfDay();
-            $now = Carbon::now()->startOfDay();
-            
-            if ($now->gt($expirationDate)) {
-                return 0;
-            }
-
-            // Calcular días incluyendo el día de hoy hasta el día de vencimiento
-            return (int) $now->diffInDays($expirationDate, false);
+            return Carbon::parse($validUntil);
         } catch (\Exception $e) {
             return null;
         }
@@ -209,17 +299,23 @@ class LicenseValidator
     public static function hasFeature(string $feature): bool
     {
         try {
-            $license = self::readLicense();
+            $license = self::getActiveLicense();
             
-            if (!$license || !self::isValid()) {
+            if (!$license || !$license->isValid()) {
                 return false;
             }
 
-            $features = $license['features'] ?? [];
-            
-            return in_array($feature, $features);
+            return $license->hasFeature($feature);
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Invalida el caché de licencia
+     */
+    public static function clearCache(): void
+    {
+        Cache::forget(self::CACHE_KEY);
     }
 }

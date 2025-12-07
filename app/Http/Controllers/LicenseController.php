@@ -13,12 +13,17 @@ class LicenseController extends Controller
     public function status()
     {
         $isValid = LicenseValidator::isValid();
+        $license = LicenseValidator::getActiveLicense();
 
         return response()->json([
             'valid' => $isValid,
             'message' => $isValid 
                 ? 'Licencia válida' 
-                : 'Licencia inválida o expirada'
+                : 'No hay licencia activa en el sistema',
+            'has_license' => $license !== null,
+            'type' => $license?->type,
+            'expires_at' => $license?->expires_at?->format('Y-m-d'),
+            'days_remaining' => $license?->daysRemaining()
         ]);
     }
 
@@ -32,7 +37,8 @@ class LicenseController extends Controller
         if (!$info) {
             return response()->json([
                 'error' => 'No se pudo obtener información de la licencia',
-                'message' => 'No existe un archivo de licencia válido en el sistema'
+                'message' => 'No existe una licencia activa en el sistema',
+                'requires_activation' => true
             ], 404);
         }
 
@@ -85,57 +91,34 @@ class LicenseController extends Controller
             // Leer contenido del archivo
             $licenseContent = file_get_contents($file->getRealPath());
 
-            // Guardar temporalmente para validar
-            $tempPath = storage_path('app/license_temp.key');
-            file_put_contents($tempPath, $licenseContent);
+            // Activar la licencia usando el servicio
+            $result = LicenseValidator::activateLicense(
+                $licenseContent,
+                auth()->check() ? auth()->id() : null,
+                $request->ip()
+            );
 
-            // Validar la licencia antes de activarla
-            // Temporalmente renombrar la actual si existe
-            $currentPath = storage_path('app/license.key');
-            $backupPath = storage_path('app/license_backup_' . time() . '.key');
-            
-            if (file_exists($currentPath)) {
-                rename($currentPath, $backupPath);
-            }
-
-            // Mover la nueva licencia
-            rename($tempPath, $currentPath);
-
-            // Validar la nueva licencia
-            if (!LicenseValidator::isValid()) {
-                // Si no es válida, restaurar la anterior
-                if (file_exists($backupPath)) {
-                    rename($backupPath, $currentPath);
-                }
-                
+            if (!$result['success']) {
                 return response()->json([
-                    'error' => 'Licencia inválida',
-                    'message' => 'El archivo de licencia no es válido o ha sido alterado'
+                    'error' => 'Error al activar licencia',
+                    'message' => $result['message']
                 ], 400);
             }
 
-            // Licencia válida - obtener información
-            $licenseInfo = LicenseValidator::getLicenseInfo();
-
-            // Registrar en historial (si hay usuario autenticado)
+            // Registrar en historial
             \App\Models\LicenseHistory::create([
                 'user_id' => auth()->check() ? auth()->id() : null,
-                'institution' => $licenseInfo['institution'] ?? 'N/A',
-                'valid_until' => $licenseInfo['valid_until'] ?? null,
+                'institution' => $result['license']['institution'] ?? 'N/A',
+                'valid_until' => $result['license']['expires_at'] ?? 'PERMANENT',
                 'uploaded_by' => auth()->check() ? auth()->user()->name : 'Activación Inicial',
                 'ip_address' => $request->ip(),
                 'filename' => $file->getClientOriginalName(),
             ]);
 
-            // Eliminar backup si todo salió bien
-            if (file_exists($backupPath)) {
-                unlink($backupPath);
-            }
-
             return response()->json([
                 'success' => true,
-                'message' => 'Licencia activada correctamente',
-                'license_info' => $licenseInfo
+                'message' => $result['message'],
+                'license_info' => $result['license']
             ]);
 
         } catch (\Exception $e) {

@@ -122,7 +122,6 @@ return [
 
     'middleware' => [
         'web',
-        \Laravel\Pulse\Http\Middleware\HandleInertiaRequests::class,
         \App\Http\Middleware\PulseDirectorAuth::class,
         \App\Http\Middleware\InjectPulseLogout::class,
     ],
