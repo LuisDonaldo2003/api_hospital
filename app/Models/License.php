@@ -21,6 +21,10 @@ class License extends Model
         'activated_by',
         'activation_ip',
         'last_checked_at',
+        'hardware_signature',
+        'hospital_info',
+        'activation_hardware_info',
+        'max_activations',
     ];
 
     protected $casts = [
@@ -29,6 +33,8 @@ class License extends Model
         'last_checked_at' => 'datetime',
         'is_active' => 'boolean',
         'features' => 'array',
+        'hospital_info' => 'array',
+        'activation_hardware_info' => 'array',
     ];
 
     /**
@@ -131,5 +137,41 @@ class License extends Model
         }
 
         return in_array($feature, $this->features);
+    }
+
+    /**
+     * Verifica si el hardware coincide con el autorizado
+     */
+    public function isValidHardware(string $currentHardwareSignature): bool
+    {
+        if (!$this->hardware_signature) {
+            return true; // Licencias antiguas sin firma de hardware
+        }
+
+        return hash_equals($this->hardware_signature, $currentHardwareSignature);
+    }
+
+    /**
+     * Obtiene la información del hospital
+     */
+    public function getHospitalInfo(): ?array
+    {
+        return $this->hospital_info;
+    }
+
+    /**
+     * Relación con las activaciones
+     */
+    public function activations()
+    {
+        return $this->hasMany(LicenseActivation::class, 'license_key', 'license_key');
+    }
+
+    /**
+     * Obtiene la activación actual activa
+     */
+    public function currentActivation()
+    {
+        return $this->activations()->active()->first();
     }
 }

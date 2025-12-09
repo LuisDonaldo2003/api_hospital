@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\License;
+use App\Models\LicenseActivation;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -111,15 +112,58 @@ class LicenseValidator
                 ];
             }
 
+            // Obtener firma de hardware del servidor actual
+            $currentHardwareSignature = HardwareSignatureService::generateSignature();
+            $hardwareInfo = HardwareSignatureService::getHardwareInfo();
+
+            // Validar que la firma de hardware coincida (si existe en la licencia)
+            if (isset($licenseData['hardware_signature'])) {
+                if (!hash_equals($licenseData['hardware_signature'], $currentHardwareSignature)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Esta licencia no está autorizada para este servidor. La firma de hardware no coincide.',
+                        'error_code' => 'HARDWARE_MISMATCH',
+                        'current_hardware' => [
+                            'hostname' => $hardwareInfo['hostname'],
+                            'mac' => $hardwareInfo['mac_address'],
+                        ],
+                    ];
+                }
+            }
+
             // Determinar tipo de licencia y fecha de expiración
             $type = self::determineLicenseType($licenseData['valid_until'] ?? null);
             $expiresAt = self::calculateExpirationDate($licenseData['valid_until'] ?? null, $type);
 
-            // Desactivar licencias anteriores
-            License::where('is_active', true)->update(['is_active' => false]);
-
             // Crear hash único del archivo
             $licenseKey = hash('sha256', $licenseContent);
+
+            // Verificar si ya existe una activación de esta licencia en otro hardware
+            $existingActivation = LicenseActivation::byLicense($licenseKey)
+                ->active()
+                ->first();
+
+            if ($existingActivation && $existingActivation->hardware_signature !== $currentHardwareSignature) {
+                return [
+                    'success' => false,
+                    'message' => 'Esta licencia ya está activada en otro servidor.',
+                    'error_code' => 'ALREADY_ACTIVATED',
+                    'activated_on' => [
+                        'hostname' => $existingActivation->hardware_info['hostname'] ?? 'Desconocido',
+                        'activated_at' => $existingActivation->activated_at->format('Y-m-d H:i:s'),
+                    ],
+                ];
+            }
+
+            // Extraer información del hospital
+            $hospitalInfo = self::extractHospitalInfo($licenseData);
+
+            // Desactivar licencias anteriores
+            License::where('is_active', true)->update(['is_active' => false]);
+            LicenseActivation::where('is_active', true)->update([
+                'is_active' => false,
+                'deactivated_at' => Carbon::now(),
+            ]);
 
             // Verificar si ya existe esta licencia
             $existingLicense = License::where('license_key', $licenseKey)->first();
@@ -131,13 +175,16 @@ class LicenseValidator
                     'last_checked_at' => Carbon::now(),
                     'activated_by' => $userId,
                     'activation_ip' => $ip,
+                    'hardware_signature' => $currentHardwareSignature,
+                    'hospital_info' => $hospitalInfo,
+                    'activation_hardware_info' => $hardwareInfo,
                 ]);
 
                 $license = $existingLicense;
             } else {
                 // Crear nueva licencia en la BD
                 $license = License::create([
-                    'institution' => $licenseData['institution'] ?? 'N/A',
+                    'institution' => $hospitalInfo['name'] ?? $licenseData['institution'] ?? 'N/A',
                     'license_key' => $licenseKey,
                     'license_data' => encrypt(json_encode($licenseData)),
                     'type' => $type,
@@ -150,6 +197,30 @@ class LicenseValidator
                     'activated_by' => $userId,
                     'activation_ip' => $ip,
                     'last_checked_at' => Carbon::now(),
+                    'hardware_signature' => $currentHardwareSignature,
+                    'hospital_info' => $hospitalInfo,
+                    'activation_hardware_info' => $hardwareInfo,
+                ]);
+            }
+
+            // Registrar activación
+            if ($existingActivation && $existingActivation->hardware_signature === $currentHardwareSignature) {
+                // Reactivar activación existente
+                $existingActivation->reactivate();
+            } else {
+                // Crear nueva activación
+                LicenseActivation::create([
+                    'license_key' => $licenseKey,
+                    'hardware_signature' => $currentHardwareSignature,
+                    'hardware_info' => $hardwareInfo,
+                    'activated_at' => Carbon::now(),
+                    'is_active' => true,
+                    'activation_ip' => $ip,
+                    'activated_by' => $userId,
+                    'server_info' => [
+                        'os' => $hardwareInfo['os'],
+                        'hostname' => $hardwareInfo['hostname'],
+                    ],
                 ]);
             }
 
@@ -161,9 +232,11 @@ class LicenseValidator
                 'message' => 'Licencia activada correctamente',
                 'license' => [
                     'institution' => $license->institution,
+                    'hospital_info' => $hospitalInfo,
                     'type' => $license->type,
                     'expires_at' => $license->expires_at?->format('Y-m-d') ?? 'PERMANENT',
                     'days_remaining' => $license->daysRemaining(),
+                    'server_identifier' => HardwareSignatureService::getServerIdentifier(),
                 ]
             ];
 
@@ -317,5 +390,30 @@ class LicenseValidator
     public static function clearCache(): void
     {
         Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Extrae información del hospital de los datos de la licencia
+     */
+    private static function extractHospitalInfo(array $licenseData): array
+    {
+        return [
+            'name' => $licenseData['hospital_name'] ?? $licenseData['institution'] ?? 'N/A',
+            'address' => $licenseData['hospital_address'] ?? $licenseData['address'] ?? null,
+            'contact_name' => $licenseData['contact_name'] ?? null,
+            'contact_email' => $licenseData['contact_email'] ?? null,
+            'contact_phone' => $licenseData['contact_phone'] ?? null,
+            'city' => $licenseData['city'] ?? null,
+            'state' => $licenseData['state'] ?? null,
+            'country' => $licenseData['country'] ?? 'México',
+        ];
+    }
+
+    /**
+     * Obtiene información del hardware actual del servidor
+     */
+    public static function getCurrentHardwareInfo(): array
+    {
+        return HardwareSignatureService::getHardwareInfo();
     }
 }

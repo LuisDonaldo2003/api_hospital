@@ -46,12 +46,14 @@ Route::get('/maintenance/check', [MaintenanceController::class, 'check']);
 // Rutas de licencia (accesibles siempre para verificar estado)
 Route::get('/license/status', [LicenseController::class, 'status']);
 Route::get('/license/info', [LicenseController::class, 'info']);
+Route::get('/license/hardware-info', [LicenseController::class, 'hardwareInfo']);
 Route::get('/license/check-feature', [LicenseController::class, 'checkFeature']);
 Route::post('/license/upload', [LicenseController::class, 'upload']); // Sin autenticación para permitir activación inicial
 
 // Rutas de gestión de licencia (requiere autenticación)
 Route::middleware('auth:api')->group(function () {
     Route::get('/license/history', [LicenseController::class, 'history']);
+    Route::get('/license/activations', [LicenseController::class, 'activations']);
 });
 
 // Autenticación

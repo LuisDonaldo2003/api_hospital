@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\LicenseValidator;
+use App\Services\HardwareSignatureService;
 
 class LicenseController extends Controller
 {
@@ -99,10 +100,23 @@ class LicenseController extends Controller
             );
 
             if (!$result['success']) {
+                $statusCode = 400;
+                
+                // Determinar código de estado según el tipo de error
+                if (isset($result['error_code'])) {
+                    $statusCode = match($result['error_code']) {
+                        'HARDWARE_MISMATCH' => 403,
+                        'ALREADY_ACTIVATED' => 409,
+                        default => 400,
+                    };
+                }
+                
                 return response()->json([
                     'error' => 'Error al activar licencia',
-                    'message' => $result['message']
-                ], 400);
+                    'message' => $result['message'],
+                    'error_code' => $result['error_code'] ?? 'UNKNOWN',
+                    'details' => $result['current_hardware'] ?? $result['activated_on'] ?? null,
+                ], $statusCode);
             }
 
             // Registrar en historial
@@ -141,5 +155,46 @@ class LicenseController extends Controller
             ->get();
 
         return response()->json($history);
+    }
+
+    /**
+     * Obtiene información del hardware del servidor actual
+     */
+    public function hardwareInfo()
+    {
+        try {
+            $hardwareInfo = HardwareSignatureService::getHardwareInfo();
+            $serverIdentifier = HardwareSignatureService::getServerIdentifier();
+
+            return response()->json([
+                'hardware_info' => $hardwareInfo,
+                'server_identifier' => $serverIdentifier,
+                'signature' => $hardwareInfo['signature'],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'No se pudo obtener información del hardware',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtiene las activaciones de licencia
+     */
+    public function activations()
+    {
+        try {
+            $activations = \App\Models\LicenseActivation::with('activatedBy')
+                ->orderBy('activated_at', 'desc')
+                ->get();
+
+            return response()->json($activations);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'No se pudo obtener el historial de activaciones',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
