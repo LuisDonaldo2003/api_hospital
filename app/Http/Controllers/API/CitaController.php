@@ -23,6 +23,9 @@ class CitaController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('paciente_nombre', 'like', "%{$search}%")
+                  ->orWhere('folio_expediente', 'like', "%{$search}%")
+                  ->orWhere('numero_cel', 'like', "%{$search}%")
+                  ->orWhere('procedencia', 'like', "%{$search}%")
                   ->orWhere('motivo', 'like', "%{$search}%")
                   ->orWhereHas('doctorRelation', function ($q2) use ($search) {
                       $q2->where('nombre', 'like', "%{$search}%")
@@ -107,11 +110,17 @@ class CitaController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'paciente_id' => 'nullable|exists:patients,id',
-            'paciente_nombre' => 'required_without:paciente_id|string|max:200',
+            'folio_expediente' => 'required|string|max:100',
+            'paciente_nombre' => 'required|string|max:200',
+            'fecha_nacimiento' => 'required|date|before_or_equal:today',
+            'numero_cel' => 'required|string|max:20',
+            'procedencia' => 'required|string|max:200',
+            'tipo_cita' => 'required|in:Primera vez,Subsecuente',
+            'turno' => 'required|in:Matutino,Vespertino',
             'paciente_telefono' => 'nullable|string|max:20',
             'paciente_email' => 'nullable|email|max:100',
             'doctor_id' => 'required|exists:doctors,id',
-            'fecha' => 'required|date', // Removido after_or_equal:today para permitir fechas flexibles
+            'fecha' => 'required|date',
             'hora' => 'required|date_format:H:i',
             'motivo' => 'required|string',
             'observaciones' => 'nullable|string',
@@ -177,7 +186,13 @@ class CitaController extends Controller
 
         $validator = Validator::make($request->all(), [
             'paciente_id' => 'nullable|exists:patients,id',
-            'paciente_nombre' => 'required_without:paciente_id|string|max:200',
+            'folio_expediente' => 'required|string|max:100',
+            'paciente_nombre' => 'required|string|max:200',
+            'fecha_nacimiento' => 'required|date|before_or_equal:today',
+            'numero_cel' => 'required|string|max:20',
+            'procedencia' => 'required|string|max:200',
+            'tipo_cita' => 'required|in:Primera vez,Subsecuente',
+            'turno' => 'required|in:Matutino,Vespertino',
             'paciente_telefono' => 'nullable|string|max:20',
             'paciente_email' => 'nullable|email|max:100',
             'doctor_id' => 'required|exists:doctors,id',
@@ -388,11 +403,11 @@ class CitaController extends Controller
     }
 
     /**
-     * Generar slots de horarios de 20 minutos
+     * Generar slots de horarios de 1 hora
      */
     private function generarSlotsDeHorario($doctor, $citasAgendadas)
     {
-        $duracion = 20; // minutos
+        $duracion = 60; // minutos
         $turno = $doctor->turno;
 
         // Normalizar turno

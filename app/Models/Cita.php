@@ -14,7 +14,13 @@ class Cita extends Model
 
     protected $fillable = [
         'paciente_id',
+        'folio_expediente',
         'paciente_nombre',
+        'fecha_nacimiento',
+        'numero_cel',
+        'procedencia',
+        'tipo_cita',
+        'turno',
         'paciente_telefono',
         'paciente_email',
         'doctor_id',

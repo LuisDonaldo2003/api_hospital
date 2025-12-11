@@ -20,16 +20,24 @@ class ArchiveController extends Controller
         $query = Archive::with(['gender'])
             ->orderBy('archive_number', 'asc');
 
-        // Filtro por número de expediente (búsqueda exacta o parcial)
+        // Variable para almacenar el número de expediente buscado originalmente
+        $originalSearchNumber = null;
+        
+        // Filtro por número de expediente
         if ($request->filled('archive_number')) {
             $archiveNumber = trim($request->archive_number);
-            // Si es numérico, buscar exacto primero, luego parcial
-            if (is_numeric($archiveNumber)) {
-                $query->where(function($q) use ($archiveNumber) {
-                    $q->where('archive_number', $archiveNumber)
-                      ->orWhere('archive_number', 'ilike', '%' . $archiveNumber . '%');
-                });
+            
+            // Si es numérico y parece búsqueda exacta (sin wildcards)
+            if (is_numeric($archiveNumber) && !str_contains($archiveNumber, '%')) {
+                $baseNumber = (int) $archiveNumber;
+                $originalSearchNumber = $baseNumber;
+                
+                // Buscar el expediente específico + los 10 SIGUIENTES REGISTROS QUE EXISTAN
+                // No usar rango fijo, sino buscar los siguientes registros existentes
+                $query->where('archive_number', '>=', $baseNumber)
+                     ->limit(11); // 1 original + 10 siguientes
             } else {
+                // Búsqueda parcial normal (para texto o búsquedas con wildcards)
                 $query->where('archive_number', 'ilike', '%' . $archiveNumber . '%');
             }
         }
@@ -138,12 +146,20 @@ class ArchiveController extends Controller
 
             $total = $query->count();
             $archives = $query->skip($skip)->take($limit)->get();
+            
+            // Marcar el expediente buscado originalmente para resaltarlo en el frontend
+            if ($originalSearchNumber !== null) {
+                $archives->each(function($archive) use ($originalSearchNumber) {
+                    $archive->is_original_search = ($archive->archive_number == $originalSearchNumber);
+                });
+            }
 
             return response()->json([
                 'data' => $archives,
                 'total' => $total,
                 'current_page' => floor($skip / $limit) + 1,
-                'per_page' => $limit
+                'per_page' => $limit,
+                'original_search_number' => $originalSearchNumber
             ]);
         }
 
