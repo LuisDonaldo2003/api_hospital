@@ -68,6 +68,7 @@ Route::group([
     Route::post('/list', [AuthController::class, 'list']);
     Route::post('/reg', [AuthController::class, 'reg']);
     Route::post('/heartbeat', [AuthController::class, 'heartbeat'])->name('heartbeat');
+    Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
 });
 
 // Verificación de cuenta

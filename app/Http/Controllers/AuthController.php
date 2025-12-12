@@ -300,5 +300,38 @@ class AuthController extends Controller
         return response()->json(['message' => 'Contraseña actualizada correctamente.']);
     }
 
+    /**
+     * Change password for authenticated users
+     * Requires current password verification for security
+     */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ], [
+            'current_password.required' => 'La contraseña actual es requerida.',
+            'new_password.required' => 'La nueva contraseña es requerida.',
+            'new_password.min' => 'La nueva contraseña debe tener al menos 8 caracteres.',
+            'new_password.confirmed' => 'Las contraseñas no coinciden.',
+        ]);
+
+        $user = auth('api')->user();
+
+        // Verify current password
+        if (!\Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'La contraseña actual es incorrecta.'
+            ], 400);
+        }
+
+        // Update password
+        $user->password = \Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Contraseña actualizada correctamente.'
+        ]);
+    }
 
 }

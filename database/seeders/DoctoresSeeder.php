@@ -13,32 +13,58 @@ class DoctoresSeeder extends Seeder
     public function run(): void
     {
         $doctors = [
-            // Medicina General
+            // Oftalmología (ID: 1) - 11:00 AM
             [
-                'nombre_completo' => 'Dr. Juan Carlos Pérez García',
+                'nombre_completo' => 'Dra. Ana María González López',
                 'especialidad_id' => 1,
                 'turno' => 'Matutino',
-                'hora_inicio_matutino' => '08:00',
+                'hora_inicio_matutino' => '11:00',
                 'hora_fin_matutino' => '14:00',
                 'hora_inicio_vespertino' => null,
                 'hora_fin_vespertino' => null,
                 'activo' => true,
             ],
+            
+            // Medicina Interna (ID: 2) - 8:00 AM a 1:00 PM
             [
-                'nombre_completo' => 'Dra. Laura Patricia Mendoza Silva',
-                'especialidad_id' => 1,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '14:00',
-                'hora_fin_vespertino' => '20:00',
+                'nombre_completo' => 'Dr. Carlos Eduardo Martínez Ruiz',
+                'especialidad_id' => 2,
+                'turno' => 'Matutino',
+                'hora_inicio_matutino' => '08:00',
+                'hora_fin_matutino' => '13:00',
+                'hora_inicio_vespertino' => null,
+                'hora_fin_vespertino' => null,
                 'activo' => true,
             ],
             
-            // Pediatría
+            // Otorrinolaringología (ID: 3) - 8:00 AM a 1:00 PM
             [
-                'nombre_completo' => 'Dra. María Elena González López',
-                'especialidad_id' => 2,
+                'nombre_completo' => 'Dr. Roberto Alejandro Pérez Sánchez',
+                'especialidad_id' => 3,
+                'turno' => 'Matutino',
+                'hora_inicio_matutino' => '08:00',
+                'hora_fin_matutino' => '13:00',
+                'hora_inicio_vespertino' => null,
+                'hora_fin_vespertino' => null,
+                'activo' => true,
+            ],
+            
+            // Nutrición (ID: 4) - Horario pendiente
+            [
+                'nombre_completo' => 'Dra. María Elena Ramírez Torres',
+                'especialidad_id' => 4,
+                'turno' => 'Matutino',
+                'hora_inicio_matutino' => '09:00',
+                'hora_fin_matutino' => '14:00',
+                'hora_inicio_vespertino' => null,
+                'hora_fin_vespertino' => null,
+                'activo' => true,
+            ],
+            
+            // Psicología (ID: 5) - Horario pendiente
+            [
+                'nombre_completo' => 'Lic. Laura Patricia Hernández Silva',
+                'especialidad_id' => 5,
                 'turno' => 'Mixto',
                 'hora_inicio_matutino' => '09:00',
                 'hora_fin_matutino' => '13:00',
@@ -46,86 +72,10 @@ class DoctoresSeeder extends Seeder
                 'hora_fin_vespertino' => '19:00',
                 'activo' => true,
             ],
-            [
-                'nombre_completo' => 'Dr. Roberto Alejandro Flores Ruiz',
-                'especialidad_id' => 2,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '07:00',
-                'hora_fin_matutino' => '13:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
             
-            // Cardiología
+            // Cirugía General (ID: 6) - Horario pendiente
             [
-                'nombre_completo' => 'Dr. Carlos Eduardo Rodríguez Martínez',
-                'especialidad_id' => 3,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '08:00',
-                'hora_fin_matutino' => '14:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dra. Patricia Ivonne Sánchez Vargas',
-                'especialidad_id' => 3,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '14:00',
-                'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
-            
-            // Dermatología
-            [
-                'nombre_completo' => 'Dra. Ana Sofía Hernández Sánchez',
-                'especialidad_id' => 4,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '07:00',
-                'hora_fin_matutino' => '13:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dr. Miguel Ángel Castro Morales',
-                'especialidad_id' => 4,
-                'turno' => 'Mixto',
-                'hora_inicio_matutino' => '10:00',
-                'hora_fin_matutino' => '14:00',
-                'hora_inicio_vespertino' => '16:00',
-                'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
-            
-            // Ginecología
-            [
-                'nombre_completo' => 'Dra. Gabriela Fernanda Ramírez Torres',
-                'especialidad_id' => 5,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '15:00',
-                'hora_fin_vespertino' => '21:00',
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dr. Fernando José Ortiz Gutiérrez',
-                'especialidad_id' => 5,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '08:00',
-                'hora_fin_matutino' => '14:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
-            
-            // Oftalmología
-            [
-                'nombre_completo' => 'Dr. Ricardo Javier Moreno Delgado',
+                'nombre_completo' => 'Dr. Fernando José Morales García',
                 'especialidad_id' => 6,
                 'turno' => 'Matutino',
                 'hora_inicio_matutino' => '07:00',
@@ -134,102 +84,28 @@ class DoctoresSeeder extends Seeder
                 'hora_fin_vespertino' => null,
                 'activo' => true,
             ],
-            [
-                'nombre_completo' => 'Dra. Daniela Margarita López Cruz',
-                'especialidad_id' => 6,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '14:00',
-                'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
             
-            // Traumatología
+            // Pediatría (ID: 7) - Horario pendiente
             [
-                'nombre_completo' => 'Dr. Sergio Alberto Vega Jiménez',
+                'nombre_completo' => 'Dra. Gabriela Fernanda López Cruz',
                 'especialidad_id' => 7,
+                'turno' => 'Mixto',
+                'hora_inicio_matutino' => '09:00',
+                'hora_fin_matutino' => '13:00',
+                'hora_inicio_vespertino' => '15:00',
+                'hora_fin_vespertino' => '19:00',
+                'activo' => true,
+            ],
+            
+            // Traumatología (ID: 8) - Horario pendiente
+            [
+                'nombre_completo' => 'Dr. Miguel Ángel Rodríguez Vega',
+                'especialidad_id' => 8,
                 'turno' => 'Mixto',
                 'hora_inicio_matutino' => '08:00',
                 'hora_fin_matutino' => '12:00',
                 'hora_inicio_vespertino' => '16:00',
                 'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dra. Mónica Alejandra Reyes Campos',
-                'especialidad_id' => 7,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '14:00',
-                'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
-            
-            // Neurología
-            [
-                'nombre_completo' => 'Dr. Andrés Felipe Navarro Espinoza',
-                'especialidad_id' => 8,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '08:00',
-                'hora_fin_matutino' => '14:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dra. Verónica Isabel Aguilar Mendoza',
-                'especialidad_id' => 8,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '15:00',
-                'hora_fin_vespertino' => '21:00',
-                'activo' => true,
-            ],
-            
-            // Psiquiatría
-            [
-                'nombre_completo' => 'Dra. Carmen Leticia Torres Ríos',
-                'especialidad_id' => 9,
-                'turno' => 'Mixto',
-                'hora_inicio_matutino' => '09:00',
-                'hora_fin_matutino' => '13:00',
-                'hora_inicio_vespertino' => '15:00',
-                'hora_fin_vespertino' => '19:00',
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dr. Héctor Manuel Domínguez Peña',
-                'especialidad_id' => 9,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '07:00',
-                'hora_fin_matutino' => '13:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
-            
-            // Medicina Interna
-            [
-                'nombre_completo' => 'Dr. Francisco Javier Medina Guerrero',
-                'especialidad_id' => 10,
-                'turno' => 'Vespertino',
-                'hora_inicio_matutino' => null,
-                'hora_fin_matutino' => null,
-                'hora_inicio_vespertino' => '14:00',
-                'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
-            [
-                'nombre_completo' => 'Dra. Silvia Rocío Paredes Luna',
-                'especialidad_id' => 10,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '08:00',
-                'hora_fin_matutino' => '14:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
                 'activo' => true,
             ],
         ];
