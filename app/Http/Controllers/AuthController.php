@@ -81,67 +81,6 @@ class AuthController extends Controller
         $user = auth('api')->user();
 
         // ======================================
-        // SISTEMA DE DETECCIÓN DE CAMBIOS RÁPIDOS
-        // ======================================
-        
-        // Verificar si la cuenta está temporalmente bloqueada
-        $banKey = 'user-login-ban-' . $user->id;
-        if (\Cache::has($banKey)) {
-            $banData = \Cache::get($banKey);
-            $remainingSeconds = $banData['expires_at'] - now()->timestamp;
-            
-            if ($remainingSeconds > 0) {
-                return response()->json([
-                    'error' => 'Account temporarily locked',
-                    'message' => 'Tu cuenta ha sido bloqueada temporalmente debido a múltiples cambios de sesión',
-                    'banned' => true,
-                    'ban_time_remaining' => $remainingSeconds
-                ], 403);
-            } else {
-                // El baneo expiró, limpiar
-                \Cache::forget($banKey);
-            }
-        }
-
-        // Registrar el timestamp del login actual
-        $loginAttemptsKey = 'user-login-attempts-' . $user->id;
-        $loginAttempts = \Cache::get($loginAttemptsKey, []);
-        
-        // Agregar el timestamp actual
-        $loginAttempts[] = now()->timestamp;
-        
-        // Filtrar solo los últimos 5 minutos (300 segundos)
-        $fiveMinutesAgo = now()->subMinutes(5)->timestamp;
-        $recentAttempts = array_filter($loginAttempts, function($timestamp) use ($fiveMinutesAgo) {
-            return $timestamp >= $fiveMinutesAgo;
-        });
-        
-        // Reindexar el array
-        $recentAttempts = array_values($recentAttempts);
-        
-        // Si hay 5 o más intentos en los últimos 5 minutos, bloquear por 5 minutos
-        if (count($recentAttempts) >= 5) {
-            $banExpiresAt = now()->addMinutes(5)->timestamp;
-            \Cache::put($banKey, [
-                'expires_at' => $banExpiresAt,
-                'reason' => 'Multiple rapid session changes detected'
-            ], 300); // 5 minutos
-            
-            // Limpiar los intentos
-            \Cache::forget($loginAttemptsKey);
-            
-            return response()->json([
-                'error' => 'Account temporarily locked',
-                'message' => 'Se han detectado múltiples cambios de sesión. Por seguridad, tu cuenta ha sido bloqueada por 5 minutos',
-                'banned' => true,
-                'ban_time_remaining' => 300
-            ], 403);
-        }
-        
-        // Guardar los intentos actualizados (expiran en 10 minutos)
-        \Cache::put($loginAttemptsKey, $recentAttempts, 600);
-
-        // ======================================
         // SISTEMA DE SESIONES CONCURRENTES
         // ======================================
         
@@ -361,37 +300,5 @@ class AuthController extends Controller
         return response()->json(['message' => 'Contraseña actualizada correctamente.']);
     }
 
-    /**
-     * Verifica si un usuario está temporalmente bloqueado
-     */
-    public function checkBanStatus(Request $request)
-    {
-        $request->validate(['email' => 'required|email']);
-        
-        $user = User::where('email', $request->email)->first();
-        
-        if (!$user) {
-            return response()->json(['banned' => false]);
-        }
-        
-        $banKey = 'user-login-ban-' . $user->id;
-        
-        if (\Cache::has($banKey)) {
-            $banData = \Cache::get($banKey);
-            $remainingSeconds = $banData['expires_at'] - now()->timestamp;
-            
-            if ($remainingSeconds > 0) {
-                return response()->json([
-                    'banned' => true,
-                    'message' => 'Tu cuenta está temporalmente bloqueada debido a múltiples cambios de sesión',
-                    'ban_time_remaining' => $remainingSeconds
-                ]);
-            } else {
-                // El baneo expiró
-                \Cache::forget($banKey);
-            }
-        }
-        
-        return response()->json(['banned' => false]);
-    }
+
 }
