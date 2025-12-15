@@ -72,42 +72,6 @@ class DoctoresSeeder extends Seeder
                 'hora_fin_vespertino' => '19:00',
                 'activo' => true,
             ],
-            
-            // Cirugía General (ID: 6) - Horario pendiente
-            [
-                'nombre_completo' => 'Dr. Fernando José Morales García',
-                'especialidad_id' => 6,
-                'turno' => 'Matutino',
-                'hora_inicio_matutino' => '07:00',
-                'hora_fin_matutino' => '13:00',
-                'hora_inicio_vespertino' => null,
-                'hora_fin_vespertino' => null,
-                'activo' => true,
-            ],
-            
-            // Pediatría (ID: 7) - Horario pendiente
-            [
-                'nombre_completo' => 'Dra. Gabriela Fernanda López Cruz',
-                'especialidad_id' => 7,
-                'turno' => 'Mixto',
-                'hora_inicio_matutino' => '09:00',
-                'hora_fin_matutino' => '13:00',
-                'hora_inicio_vespertino' => '15:00',
-                'hora_fin_vespertino' => '19:00',
-                'activo' => true,
-            ],
-            
-            // Traumatología (ID: 8) - Horario pendiente
-            [
-                'nombre_completo' => 'Dr. Miguel Ángel Rodríguez Vega',
-                'especialidad_id' => 8,
-                'turno' => 'Mixto',
-                'hora_inicio_matutino' => '08:00',
-                'hora_fin_matutino' => '12:00',
-                'hora_inicio_vespertino' => '16:00',
-                'hora_fin_vespertino' => '20:00',
-                'activo' => true,
-            ],
         ];
 
         foreach ($doctors as $doctor) {

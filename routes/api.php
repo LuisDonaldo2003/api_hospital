@@ -33,6 +33,7 @@ use App\Http\Controllers\API\AreaController;
 use App\Http\Controllers\API\DoctorController;
 use App\Http\Controllers\API\CitaController;
 use App\Http\Controllers\API\EspecialidadController;
+use App\Http\Controllers\API\GeneralMedicalController;
 use App\Http\Controllers\LicenseController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -222,6 +223,15 @@ Route::group([
             Route::post('/', [EspecialidadController::class, 'store']);
             Route::put('/{id}', [EspecialidadController::class, 'update']);
             Route::delete('/{id}', [EspecialidadController::class, 'destroy']);
+        });
+
+        // Médicos Generales
+        Route::prefix('general-medicals')->group(function () {
+            Route::get('/', [GeneralMedicalController::class, 'index']);
+            Route::get('/{id}', [GeneralMedicalController::class, 'show']);
+            Route::post('/', [GeneralMedicalController::class, 'store']);
+            Route::put('/{id}', [GeneralMedicalController::class, 'update']);
+            Route::delete('/{id}', [GeneralMedicalController::class, 'destroy']);
         });
 
         // Doctores

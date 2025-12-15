@@ -38,7 +38,10 @@ class DatabaseSeeder extends Seeder
         
         // Catálogos Appointments
         EspecialidadesSeeder::class,           // Especialidades médicas
+        GeneralMedicalSeeder::class,           // Médicos Generales (Categorías)
         DoctoresSeeder::class,                 // Doctores del hospital
+
+        TeachingSeeder::class,
     ]);
 }
 

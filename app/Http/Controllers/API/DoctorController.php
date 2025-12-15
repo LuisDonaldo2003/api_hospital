@@ -16,7 +16,24 @@ class DoctorController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Doctor::with('especialidad');
+        $query = Doctor::with(['especialidad', 'generalMedical']);
+        $user = auth()->user();
+
+        // -------------------------------------------------------------
+        // FILTRADO ROBUSTO POR ROL/PERMISOS
+        // -------------------------------------------------------------
+        $canSpecialist = $user->can('schedule_specialist_appointment');
+        $canGeneral = $user->can('schedule_general_appointment');
+
+        // Caso: Solo puede ver Especialistas
+        if ($canSpecialist && !$canGeneral) {
+            $query->whereNotNull('especialidad_id');
+        }
+        // Caso: Solo puede ver Generales
+        elseif ($canGeneral && !$canSpecialist) {
+            $query->whereNotNull('general_medical_id');
+        }
+        // Si no, ve todos (Admin, Director, o con ambos permisos)
 
         // Filtro por búsqueda
         if ($search = $request->get('search')) {
@@ -26,6 +43,11 @@ class DoctorController extends Controller
         // Filtro por especialidad
         if ($especialidad = $request->get('especialidad_id')) {
             $query->where('especialidad_id', $especialidad);
+        }
+
+        // Filtro por médico general
+        if ($generalMedical = $request->get('general_medical_id')) {
+            $query->where('general_medical_id', $generalMedical);
         }
 
         // Filtro por turno
@@ -57,7 +79,7 @@ class DoctorController extends Controller
      */
     public function show($id)
     {
-        $doctor = Doctor::with('especialidad')->find($id);
+        $doctor = Doctor::with(['especialidad', 'generalMedical'])->find($id);
         
         if (!$doctor) {
             return response()->json([
@@ -84,7 +106,8 @@ class DoctorController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre_completo' => 'required|string|max:255',
-            'especialidad_id' => 'required|exists:especialidades,id',
+            'especialidad_id' => 'nullable|required_without:general_medical_id|exists:especialidades,id',
+            'general_medical_id' => 'nullable|required_without:especialidad_id|exists:general_medicals,id',
             'turno' => 'required|in:Matutino,Vespertino,Mixto',
             'hora_inicio_matutino' => 'nullable|date_format:H:i',
             'hora_fin_matutino' => 'nullable|date_format:H:i',
@@ -111,7 +134,7 @@ class DoctorController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $doctor->load('especialidad'),
+            'data' => $doctor->load(['especialidad', 'generalMedical']),
             'message' => 'Doctor creado exitosamente'
         ], 201);
     }
@@ -132,7 +155,8 @@ class DoctorController extends Controller
 
         $validator = Validator::make($request->all(), [
             'nombre_completo' => 'required|string|max:255',
-            'especialidad_id' => 'required|exists:especialidades,id',
+            'especialidad_id' => 'nullable|required_without:general_medical_id|exists:especialidades,id',
+            'general_medical_id' => 'nullable|required_without:especialidad_id|exists:general_medicals,id',
             'turno' => 'required|in:Matutino,Vespertino,Mixto',
             'hora_inicio_matutino' => 'nullable|date_format:H:i',
             'hora_fin_matutino' => 'nullable|date_format:H:i',
@@ -166,7 +190,7 @@ class DoctorController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $doctor->load('especialidad'),
+            'data' => $doctor->load(['especialidad', 'generalMedical']),
             'message' => 'Doctor actualizado exitosamente'
         ]);
     }
@@ -240,6 +264,34 @@ class DoctorController extends Controller
     }
 
     /**
+     * Obtener doctores por médico general (categoría)
+     */
+    public function getByGeneralMedical($generalMedicalId)
+    {
+        $doctors = Doctor::with('generalMedical')
+            ->where('general_medical_id', $generalMedicalId)
+            ->where('activo', true)
+            ->orderBy('nombre_completo')
+            ->get();
+
+        // Registrar actividad de lectura
+        ActivityLoggerService::logRead('Doctor', null, 'doctors', [
+            'filter' => 'by_general_medical',
+            'general_medical_id' => $generalMedicalId,
+            'total_records' => $doctors->count()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $doctors,
+            'total' => $doctors->count(),
+            'message' => $doctors->count() > 0 
+                ? 'Doctores encontrados' 
+                : 'No hay doctores disponibles para esta categoría'
+        ]);
+    }
+
+    /**
      * Listar especialidades
      */
     public function listEspecialidades()
@@ -261,13 +313,29 @@ class DoctorController extends Controller
     {
         $total = Doctor::count();
         $activos = Doctor::where('activo', true)->count();
+        
         $porEspecialidad = Doctor::with('especialidad')
+            ->whereNotNull('especialidad_id')
             ->select('especialidad_id', \DB::raw('count(*) as total'))
             ->groupBy('especialidad_id')
             ->get()
             ->map(function ($item) {
                 return [
-                    'especialidad' => $item->especialidad->nombre ?? 'Sin especialidad',
+                    'categoria' => $item->especialidad->nombre ?? 'Sin nombre',
+                    'tipo' => 'Especialidad',
+                    'total' => $item->total
+                ];
+            });
+
+        $porGeneralMedical = Doctor::with('generalMedical')
+            ->whereNotNull('general_medical_id')
+            ->select('general_medical_id', \DB::raw('count(*) as total'))
+            ->groupBy('general_medical_id')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'categoria' => $item->generalMedical->nombre ?? 'Sin nombre',
+                    'tipo' => 'Médico General',
                     'total' => $item->total
                 ];
             });
@@ -278,7 +346,7 @@ class DoctorController extends Controller
                 'total' => $total,
                 'activos' => $activos,
                 'inactivos' => $total - $activos,
-                'por_especialidad' => $porEspecialidad
+                'por_categoria' => $porEspecialidad->concat($porGeneralMedical)
             ]
         ]);
     }

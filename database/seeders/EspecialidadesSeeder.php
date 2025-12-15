@@ -13,9 +13,6 @@ class EspecialidadesSeeder extends Seeder
     public function run(): void
     {
         $especialidades = [
-            ['nombre' => 'Oftalmología', 'descripcion' => 'Especialidad en ojos y visión', 'activo' => true],
-            ['nombre' => 'Medicina Interna', 'descripcion' => 'Especialidad en diagnóstico y tratamiento de enfermedades internas', 'activo' => true],
-            ['nombre' => 'Otorrinolaringología', 'descripcion' => 'Especialidad en oído, nariz y garganta', 'activo' => true],
             ['nombre' => 'Nutrición', 'descripcion' => 'Especialidad en alimentación y nutrición', 'activo' => true],
             ['nombre' => 'Psicología', 'descripcion' => 'Especialidad en salud mental y comportamiento', 'activo' => true],
             ['nombre' => 'Cirugía General', 'descripcion' => 'Especialidad en procedimientos quirúrgicos', 'activo' => true],

@@ -91,6 +91,8 @@ class Cita extends Model
                 'id' => $doctor->id,
                 'nombre' => $doctor->nombre_completo,
                 'especialidad' => $doctor->especialidad_nombre,
+                'especialidad_id' => $doctor->especialidad_id,
+                'general_medical_id' => $doctor->general_medical_id,
             ];
         }
 

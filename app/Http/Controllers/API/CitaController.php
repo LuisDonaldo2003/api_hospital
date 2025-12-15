@@ -18,6 +18,32 @@ class CitaController extends Controller
     public function index(Request $request)
     {
         $query = Cita::with(['doctorRelation.especialidad', 'pacienteRelation.person']);
+        $user = auth()->user();
+
+        // -------------------------------------------------------------
+        // FILTRADO ROBUSTO POR ROL/PERMISOS
+        // -------------------------------------------------------------
+        // Si tiene uno pero NO el otro, filtramos estrictamente.
+        // Si tiene ambos o es superadmin (tiene todos), no se aplica filtro extra aquí.
+        
+        $canSpecialist = $user->can('schedule_specialist_appointment');
+        $canGeneral = $user->can('schedule_general_appointment');
+
+        // Caso: Solo puede ver Especialistas
+        if ($canSpecialist && !$canGeneral) {
+            $query->whereHas('doctorRelation', function($q) {
+                $q->whereNotNull('especialidad_id');
+            });
+        }
+        // Caso: Solo puede ver Generales
+        elseif ($canGeneral && !$canSpecialist) {
+            $query->whereHas('doctorRelation', function($q) {
+                $q->whereNotNull('general_medical_id');
+            });
+        }
+        // Si no tiene ninguno de los dos permisos específicos (pero entró aquí por otros permisos), 
+        // y NO es admin/director, podríamos bloquear, pero asumiremos que si tiene 'list_appointment' ve todo 
+        // salvo que tenga la restricción específica de arriba.
 
         // Filtro por búsqueda
         if ($search = $request->get('search')) {
@@ -91,6 +117,9 @@ class CitaController extends Controller
             ], 404);
         }
 
+        // VERIFICACIÓN DE PERMISOS
+        $this->authorizeAppointmentAction($cita);
+
         // Registrar actividad de lectura
         ActivityLoggerService::logRead('Cita', $cita->id, 'citas', [
             'doctor' => $cita->doctor['nombre'] ?? 'N/A',
@@ -134,6 +163,11 @@ class CitaController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
+
+        // VERIFICACIÓN DE PERMISOS DE CREACIÓN
+        $doctor = Doctor::find($request->doctor_id);
+        $this->authorizeDoctorSelection($doctor);
+
 
         // Verificar disponibilidad del doctor
         $conflicto = Cita::where('doctor_id', $request->doctor_id)
@@ -182,6 +216,15 @@ class CitaController extends Controller
                 'success' => false,
                 'message' => 'Cita no encontrada'
             ], 404);
+        }
+
+        // VERIFICACIÓN DE PERMISOS
+        $this->authorizeAppointmentAction($cita);
+        
+        // Si cambian de doctor, volver a verificar permisos sobre el NUEVO doctor
+        if ($request->has('doctor_id') && $request->doctor_id != $cita->doctor_id) {
+            $newDoctor = Doctor::find($request->doctor_id);
+            $this->authorizeDoctorSelection($newDoctor);
         }
 
         $validator = Validator::make($request->all(), [
@@ -264,6 +307,9 @@ class CitaController extends Controller
             ], 404);
         }
 
+        // VERIFICACIÓN DE PERMISOS
+        $this->authorizeAppointmentAction($cita);
+
         if (in_array($cita->estado, ['cancelada', 'completada'])) {
             return response()->json([
                 'success' => false,
@@ -304,6 +350,9 @@ class CitaController extends Controller
             ], 404);
         }
 
+        // VERIFICACIÓN DE PERMISOS
+        $this->authorizeAppointmentAction($cita);
+
         // Registrar actividad de eliminación
         ActivityLoggerService::logDelete('Cita', $cita->id, 'citas', [
             'doctor' => $cita->doctor['nombre'] ?? 'N/A',
@@ -324,10 +373,25 @@ class CitaController extends Controller
      */
     public function today()
     {
-        $citas = Cita::with(['doctorRelation.especialidad', 'pacienteRelation.person'])
+        $query = Cita::with(['doctorRelation.especialidad', 'pacienteRelation.person'])
             ->whereDate('fecha', today())
-            ->orderBy('hora')
-            ->get();
+            ->orderBy('hora');
+
+        $user = auth()->user();
+        $canSpecialist = $user->can('schedule_specialist_appointment');
+        $canGeneral = $user->can('schedule_general_appointment');
+
+        if ($canSpecialist && !$canGeneral) {
+            $query->whereHas('doctorRelation', function($q) {
+                $q->whereNotNull('especialidad_id');
+            });
+        } elseif ($canGeneral && !$canSpecialist) {
+            $query->whereHas('doctorRelation', function($q) {
+                $q->whereNotNull('general_medical_id');
+            });
+        }
+
+        $citas = $query->get();
 
         return response()->json([
             'success' => true,
@@ -355,6 +419,10 @@ class CitaController extends Controller
             }
 
             $doctor = Doctor::with('especialidad')->findOrFail($request->doctor_id);
+            
+            // VERIFICAR PERMISO PARA VER HORARIOS DE ESTE DOCTOR
+            $this->authorizeDoctorSelection($doctor);
+
             $fecha = $request->fecha;
 
             // Obtener citas ya agendadas para ese doctor en esa fecha (excluir canceladas y no asistidas)
@@ -399,6 +467,51 @@ class CitaController extends Controller
                 'message' => 'Error al obtener horarios disponibles',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Helper: Autorizar selección de doctor basado en permisos
+     */
+    private function authorizeDoctorSelection($doctor)
+    {
+        $user = auth()->user();
+        
+        // Si tiene permiso de admin, pasa
+        if ($user->can('admin_dashboard')) {
+            return;
+        }
+
+        // Validar Especialista
+        if ($doctor->especialidad_id) {
+            // Si el usuario SOLO tiene permiso de general, y NO de especialista -> ERROR
+            if ($user->can('schedule_general_appointment') && !$user->can('schedule_specialist_appointment')) {
+                abort(403, 'No tiene permiso para gestionar citas con especialistas.');
+            }
+        }
+
+        // Validar General
+        if ($doctor->general_medical_id) {
+            // Si el usuario SOLO tiene permiso de especialista, y NO de general -> ERROR
+            if ($user->can('schedule_specialist_appointment') && !$user->can('schedule_general_appointment')) {
+                abort(403, 'No tiene permiso para gestionar citas con médicos generales.');
+            }
+        }
+    }
+
+    /**
+     * Helper: Autorizar acción sobre una cita existente
+     */
+    private function authorizeAppointmentAction($cita)
+    {
+        if ($cita->doctorRelation) {
+            $this->authorizeDoctorSelection($cita->doctorRelation);
+        } else {
+            // Fallback si no hay relación cargada, cargarla
+            $doctor = Doctor::find($cita->doctor_id);
+            if ($doctor) {
+                $this->authorizeDoctorSelection($doctor);
+            }
         }
     }
 

@@ -15,6 +15,7 @@ class Doctor extends Model
     protected $fillable = [
         'nombre_completo',
         'especialidad_id',
+        'general_medical_id',
         'turno',
         'hora_inicio_matutino',
         'hora_fin_matutino',
@@ -38,6 +39,14 @@ class Doctor extends Model
     }
 
     /**
+     * Relación con médico general (categoría)
+     */
+    public function generalMedical()
+    {
+        return $this->belongsTo(GeneralMedical::class, 'general_medical_id');
+    }
+
+    /**
      * Relación con citas
      */
     public function citas()
@@ -46,11 +55,19 @@ class Doctor extends Model
     }
 
     /**
-     * Accessor para nombre de especialidad
+     * Accessor para nombre de especialidad o médico general
      */
     public function getEspecialidadNombreAttribute()
     {
-        return $this->especialidad ? $this->especialidad->nombre : 'Sin especialidad';
+        if ($this->especialidad) {
+            return $this->especialidad->nombre;
+        }
+        
+        if ($this->generalMedical) {
+            return $this->generalMedical->nombre;
+        }
+
+        return 'Sin especialidad';
     }
 
     /**
