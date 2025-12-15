@@ -249,6 +249,16 @@ class PermissionsDemoSeeder extends Seeder
         );
         $userDeveloper5->assignRole($roleInge);
 
+        $userDeveloper6 = User::updateOrCreate(
+            ['email' => 'arturovalenciabravo@gmail.com'],
+            [
+                'name' => 'Arturo Valencia Bravo',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userDeveloper6->assignRole($roleInge);
+
 
         //Archivo
         $roleArchive = Role::create(['guard_name' => 'api','name' => 'Archivo']);
