@@ -195,7 +195,7 @@ class PermissionsDemoSeeder extends Seeder
         $userSubdirector->assignRole($roleSubAdmin);
 
          // Developer con todos los permisos
-        $roleInge = Role::create(['guard_name' => 'api','name' => 'Desarrollador']);
+        $roleInge = Role::create(['guard_name' => 'api','name' => 'Ingenieros']);
 
         $roleInge ->givePermissionTo(Permission::all());
 

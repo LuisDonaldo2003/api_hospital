@@ -53,7 +53,10 @@ class TeachingController extends Controller
             $query->where('nombre_evento', 'like', "%{$nombre_evento}%");
         }
 
-        $p = $query->orderBy('fecha', 'desc')->paginate($perPage);
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $sortDirection = in_array(strtolower($sortDirection), ['asc', 'desc']) ? $sortDirection : 'desc';
+
+        $p = $query->orderBy('id', $sortDirection)->paginate($perPage);
 
         // Registrar actividad de lectura
         ActivityLoggerService::logRead('Assistant', null, 'teachings', [
