@@ -210,7 +210,7 @@ class ArchiveController extends Controller
         }
 
         $request->validate([
-            'archive_number' => 'required|integer|unique:archive,archive_number,' . $id,
+            'archive_number' => 'required|integer', // Removed 'unique' rule here to do manual check
             'last_name_father' => 'nullable|string|max:100',
             'last_name_mother' => 'nullable|string|max:100',
             'name' => 'nullable|string|max:100',
@@ -223,9 +223,20 @@ class ArchiveController extends Controller
             'admission_date' => 'nullable|date',
             'address' => 'nullable|string|max:150',
             'location_text' => 'nullable|string|max:150',
-            'municipality_text' => 'nullable|string|max:100',
+            'municipality_text' => 'nullable|string|max:150',
             'state_text' => 'nullable|string|max:100',
         ]);
+
+        // Verificación MANUAL de duplicados (Postgres compatible) excluyendo el actual
+        $proposedNumber = (int) $request->archive_number;
+        $exists = \DB::table('archive')
+            ->whereRaw('CAST(archive_number AS INTEGER) = ?', [$proposedNumber])
+            ->where('id', '!=', $id) // Excluir el propio registro
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'El número de expediente ya está en uso por otro paciente.'], 422);
+        }
 
         // Guardar valores anteriores para el log
         $oldValues = [

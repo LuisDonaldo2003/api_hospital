@@ -520,7 +520,7 @@ class CitaController extends Controller
      */
     private function generarSlotsDeHorario($doctor, $citasAgendadas)
     {
-        $duracion = 60; // minutos
+        $duracion = 20; // minutos
         $turno = $doctor->turno;
 
         // Normalizar turno
