@@ -17,8 +17,16 @@ class ArchiveController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Archive::with(['gender'])
-            ->orderBy('archive_number', 'asc');
+        $query = Archive::with(['gender']);
+            
+        // Default sort desc unless specified
+        $sortDir = $request->input('sort_dir', 'asc');
+        // Validate sort direction
+        if (!in_array(strtolower($sortDir), ['asc', 'desc'])) {
+            $sortDir = 'asc';
+        }
+        
+        $query->orderBy('archive_number', $sortDir);
 
         // Variable para almacenar el número de expediente buscado originalmente
         $originalSearchNumber = null;
@@ -173,62 +181,7 @@ class ArchiveController extends Controller
         return response()->json($query->paginate(50));
     }
 
-    public function store(Request $request)
-    {
-        // Log simple para verificar que el método se ejecuta
-        error_log("STORE METHOD CALLED - Archive Controller");
-        \Log::info('ArchiveController store method called', $request->all());
-        
-        // Validar datos de entrada con mensajes personalizados
-        $request->validate([
-            'archive_number' => 'required|integer|unique:archive,archive_number',
-            'last_name_father' => 'nullable|string|max:100',
-            'last_name_mother' => 'nullable|string|max:100',
-            'name' => 'nullable|string|max:100',
-            'age' => 'nullable|integer',
-            'age_unit' => 'nullable|string|in:años,días,meses',
-            'gender_id' => 'nullable|integer|exists:genders,id',
-            'contact_last_name_father' => 'nullable|string|max:100',
-            'contact_last_name_mother' => 'nullable|string|max:100',
-            'contact_name' => 'nullable|string|max:100',
-            'admission_date' => 'nullable|date',
-            'address' => 'nullable|string|max:150',
-            'location_text' => 'nullable|string|max:150',
-            'municipality_text' => 'nullable|string|max:100',
-            'state_text' => 'nullable|string|max:100',
-        ], [
-            'archive_number.unique' => 'El número de expediente ' . $request->archive_number . ' ya existe. Por favor, use un número diferente.',
-            'archive_number.required' => 'El número de expediente es obligatorio.',
-            'archive_number.integer' => 'El número de expediente debe ser un número entero.'
-        ]);
 
-        $archive = Archive::create($request->all());
-
-        // Debug logs
-        \Log::info('ArchiveController: Nuevo archivo creado', [
-            'archive_id' => $archive->id,
-            'user_authenticated' => \Illuminate\Support\Facades\Auth::check(),
-            'user_id' => \Illuminate\Support\Facades\Auth::id(),
-            'user_name' => \Illuminate\Support\Facades\Auth::user()?->name ?? 'No user'
-        ]);
-
-        // Registrar actividad
-        ActivityLoggerService::logCreate('Archive', $archive->id, 'archive', [
-            'name' => $archive->name ?? 'N/A',
-            'last_name_father' => $archive->last_name_father ?? 'N/A',
-            'last_name_mother' => $archive->last_name_mother ?? 'N/A',
-            'archive_number' => $archive->archive_number ?? 'N/A',
-            'birth_date' => $archive->birth_date ?? 'N/A',
-            'gender_id' => $archive->gender_id ?? 'N/A'
-        ]);
-
-        \Log::info('ArchiveController: ActivityLoggerService llamado');
-
-        return response()->json([
-            'message' => 'Registro creado correctamente.',
-            'archive' => $archive
-        ], 201);
-    }
 
     public function show($id)
     {
@@ -257,6 +210,7 @@ class ArchiveController extends Controller
         }
 
         $request->validate([
+            'archive_number' => 'required|integer|unique:archive,archive_number,' . $id,
             'last_name_father' => 'nullable|string|max:100',
             'last_name_mother' => 'nullable|string|max:100',
             'name' => 'nullable|string|max:100',
@@ -565,4 +519,184 @@ class ArchiveController extends Controller
         
         return strtr($text, $accents);
     }
+    /**
+     * Obtiene el siguiente número de expediente disponible y lista de espacios vacíos
+     */
+    public function nextNumber()
+    {
+        $next = $this->getNextArchiveNumber();
+
+        return response()->json([
+            'next_number' => $next,
+            'available_gaps' => [] 
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        // Validar datos de entrada con mensajes personalizados
+        $request->validate([
+            'archive_number' => 'required|integer|unique:archive,archive_number',
+            'last_name_father' => 'nullable|string|max:100',
+            'last_name_mother' => 'nullable|string|max:100',
+            'name' => 'nullable|string|max:100',
+            'age' => 'nullable|integer',
+            'age_unit' => 'nullable|string|in:años,días,meses',
+            'gender_id' => 'nullable|integer|exists:genders,id',
+            'contact_last_name_father' => 'nullable|string|max:100',
+            'contact_last_name_mother' => 'nullable|string|max:100',
+            'contact_name' => 'nullable|string|max:100',
+            'admission_date' => 'nullable|date',
+            'address' => 'nullable|string|max:150',
+            'location_text' => 'nullable|string|max:150',
+            'municipality_text' => 'nullable|string|max:100',
+            'state_text' => 'nullable|string|max:100',
+        ], [
+            'archive_number.unique' => 'El número de expediente ' . $request->archive_number . ' ya existe. Por favor, use un número diferente.',
+            'archive_number.required' => 'El número de expediente es obligatorio.',
+            'archive_number.integer' => 'El número de expediente debe ser un número entero.'
+        ]);
+
+        // --- VALIDACIÓN DE SECUENCIA ESTRICTA ---
+        $proposedNumber = (int) $request->archive_number;
+
+        // 0. Pre-check de Duplicado (Explicit Cast)
+        // Aunque validate() arriba tiene unique, a veces falla por tipos de dato en Postgres.
+        $exists = \DB::table('archive')
+            ->whereRaw('CAST(archive_number AS INTEGER) = ?', [$proposedNumber])
+            ->exists();
+            
+        if ($exists) {
+             return response()->json([
+                'message' => 'El número de expediente ' . $proposedNumber . ' ya está en uso.',
+                'errors' => [
+                    'archive_number' => ['El número de expediente ya existe.']
+                ]
+            ], 422);
+        }
+
+        // Calcular el ÚNICO número permitido por la secuencia
+        $nextAllowed = $this->getNextArchiveNumber();
+
+        // Validar estrictamente
+        if ($proposedNumber !== $nextAllowed) {
+             return response()->json([
+                'message' => 'El número de expediente ' . $proposedNumber . ' es incorrecto. Debe seguir la secuencia estricta.',
+                'errors' => [
+                    'archive_number' => ['El único número permitido por la configuración y secuencia actual es ' . $nextAllowed . '.']
+                ]
+            ], 422);
+        }
+        // -------------------------------
+
+        $archive = Archive::create($request->all());
+
+        // Debug logs
+        \Log::info('ArchiveController: Nuevo archivo creado', [
+            'archive_id' => $archive->id,
+            'user_authenticated' => \Illuminate\Support\Facades\Auth::check(),
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'user_name' => \Illuminate\Support\Facades\Auth::user()?->name ?? 'No user'
+        ]);
+
+        // Registrar actividad
+        ActivityLoggerService::logCreate('Archive', $archive->id, 'archive', [
+            'name' => $archive->name ?? 'N/A',
+            'last_name_father' => $archive->last_name_father ?? 'N/A',
+            'last_name_mother' => $archive->last_name_mother ?? 'N/A',
+            'archive_number' => $archive->archive_number ?? 'N/A',
+            'birth_date' => $archive->birth_date ?? 'N/A',
+            'gender_id' => $archive->gender_id ?? 'N/A'
+        ]);
+
+        \Log::info('ArchiveController: ActivityLoggerService llamado');
+
+        return response()->json([
+            'message' => 'Registro creado correctamente.',
+            'archive' => $archive
+        ], 201);
+    }
+
+    /**
+     * Verifica si un número de expediente ya existe O si rompe la secuencia (salto grande).
+     */
+    public function checkUnique(Request $request)
+    {
+        $request->validate([
+            'archive_number' => 'required|integer'
+        ]);
+
+        $incomingNumber = (int) $request->archive_number;
+
+        // 1. Verificar si ya existe
+        $exists = \DB::table('archive')
+                    ->whereRaw('CAST(archive_number AS INTEGER) = ?', [$incomingNumber])
+                    ->exists();
+        
+        if ($exists) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El número de expediente ya está en uso por otro paciente.'
+            ]);
+        }
+
+        // 2. Verificar secuencia Estricta
+        $nextAllowed = $this->getNextArchiveNumber();
+
+        if ($incomingNumber !== $nextAllowed) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No es posible registrar este expediente. El sistema exige seguir la secuencia estrictamente. El único número disponible es ' . $nextAllowed . '.'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Disponible'
+        ]);
+    }
+    /**
+     * Calcula el siguiente número de expediente basado estrictamente en la configuración.
+     * Busca el primer hueco disponible a partir del número configurado.
+     */
+    private function getNextArchiveNumber()
+    {
+        // 1. Obtener Configuración
+        $configStart = \DB::table('configurations')->where('key', 'archive_start_number')->value('value');
+        $configStart = $configStart ? (int)$configStart : 0;
+
+        // 2. Verificar si el número de inicio existe
+        // Usamos CAST para asegurar compatibilidad si la columna es string/varchar
+        $existsStart = \DB::table('archive')
+                        ->whereRaw('CAST(archive_number AS INTEGER) = ?', [$configStart])
+                        ->exists();
+
+        if (!$existsStart) {
+            return $configStart;
+        }
+
+        // 3. Buscar el primer hueco (Gap) a partir del inicio configurado
+        // Buscamos el menor número X >= Config tal que X+1 no existe.
+        // Entonces el siguiente permitido es X+1.
+        
+        $sql = "
+            SELECT MIN(CAST(archive_number AS INTEGER) + 1) as next_val
+            FROM archive A
+            WHERE CAST(archive_number AS INTEGER) >= ?
+            AND NOT EXISTS (
+                SELECT 1 FROM archive B 
+                WHERE CAST(B.archive_number AS INTEGER) = CAST(A.archive_number AS INTEGER) + 1
+            )
+        ";
+
+        $result = \DB::select($sql, [$configStart]);
+        
+        if ($result && isset($result[0]->next_val)) {
+            return (int)$result[0]->next_val;
+        }
+
+        // Fallback (no debería ocurrir si existe el start, pero por seguridad)
+        return $configStart + 1;
+    }
 }
+

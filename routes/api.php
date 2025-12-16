@@ -104,8 +104,15 @@ Route::group([
 
     // Estadísticas Dashboard Archivo
     Route::get('archives/stats', [ArchiveController::class, 'stats']);
+    // endpoint para obtener el siguiente número disponible
+    Route::get('archives/next-number', [ArchiveController::class, 'nextNumber']);
 
     // NUEVOS ENDPOINTS
+    // Configuration Routes
+    Route::get('config/archive', [App\Http\Controllers\Admin\ConfigurationController::class, 'getArchiveConfig']);
+    Route::post('config/archive', [App\Http\Controllers\Admin\ConfigurationController::class, 'updateArchiveConfig']);
+
+    Route::get('archives/check-unique', [ArchiveController::class, 'checkUnique']); // Validación en tiempo real
     Route::get('genders', [ArchiveController::class, 'genders']);
     Route::get('states', [ArchiveController::class, 'states']);
     Route::get('municipalities', [ArchiveController::class, 'municipalities']);
