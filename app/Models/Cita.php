@@ -24,6 +24,7 @@ class Cita extends Model
         'paciente_telefono',
         'paciente_email',
         'doctor_id',
+        'appointment_service_id', // Nueva columna
         'fecha',
         'hora',
         'motivo',
@@ -39,6 +40,14 @@ class Cita extends Model
     ];
 
     protected $appends = ['paciente', 'doctor'];
+
+    /**
+     * Relación con servicio de citas
+     */
+    public function appointmentService()
+    {
+        return $this->belongsTo(AppointmentService::class, 'appointment_service_id');
+    }
 
     /**
      * Relación con doctor

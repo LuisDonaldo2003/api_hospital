@@ -30,8 +30,8 @@ return new class extends Migration
             $table->timestamp('fecha_subida');
             $table->timestamps();
             
-            // Índice único para evitar documentos duplicados del mismo tipo para la misma persona
-            $table->unique(['personal_id', 'tipo_documento']);
+            // Índice eliminado para permitir multiples constancias
+            // $table->unique(['personal_id', 'tipo_documento']);
         });
     }
 

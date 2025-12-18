@@ -15,7 +15,7 @@ class TeachingSeeder extends Seeder
         $items = [
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 1, 'nombre' => 'ISAIAS REYES PLIEGO', 'area' => 1, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'RECIÉN NACIDO DE ALTO RIESGO: PREMATUREZ Y POSTMADUREZ', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 7, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'NARA SARAIM BARRAGAN MEZA', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 2, 'created_at' => now(), 'updated_at' => now()],
-            ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion+' => 3, 'nombre' => 'EDSON ALVAREZ HIGUERA', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'EDSON ALVAREZ HIGUERA', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'KENIA PABLO CASTRO', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'DANIEL LUCAS RAMIREZ', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'JAZMIN ALONSO LOPEZ', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
@@ -28,6 +28,8 @@ class TeachingSeeder extends Seeder
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'JOSE MIGUEL VALENCIA VALENCIA', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'MIGUEL DE JESUS FLORES DE LA CRUZ', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'MARCELO JORKAETH CHAVEZ PEREZ', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-13', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
+
+
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 2, 'nombre' => 'ENEIDA PALACIOS SEBASTIAN', 'area' => 1, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'BAJO Y ALTO PESO', 'fecha' => '2025-01-14', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 7, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'NADIA ANGELA GALLARDO CRUZ', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-14', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 2, 'created_at' => now(), 'updated_at' => now()],
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'EDSON ALVAREZ HIGUERA', 'area' => 3, 'adscripcion' => 'HOSPITAL GRAL. REG."DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'PROGRAMA OPERATIVO 2025', 'tema' => 'N/A', 'fecha' => '2025-01-14', 'horas' => '1 HRA.', 'foja' => '1', 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
@@ -3691,8 +3693,41 @@ Y MARBETES DE IDENTIFICACIÓN', 'fecha' => '2025-03-14', 'horas' => '1 HRA.', 'f
             ['correo' => NULL, 'ei' => NULL, 'ef' => NULL, 'profesion' => 3, 'nombre' => 'ADRIANA DE JESUS ESTEBAN', 'area' => 3, 'adscripcion' => 'HOSPITAL GENERAL REGIONAL "DR. GUILLERMO SOBERÓN ACEVEDO"', 'nombre_evento' => 'NEUMONIA', 'tema' => 'N/A', 'fecha' => '2025-10-17', 'horas' => NULL, 'foja' => NULL, 'modalidad_id' => 6, 'participacion_id' => 1, 'created_at' => now(), 'updated_at' => now()],
         ];
 
-        foreach (array_chunk($items, 50) as $chunk) {
-            DB::table('teachings')->insert($chunk);
+        // Mapeo manual basado en los seeders de catálogos
+        $profesionesMap = [
+            1 => 'DR.', 2 => 'DRA.', 3 => 'MIP.', 4 => 'EPSS.', 5 => 'MDO.',
+            6 => 'LE.', 7 => 'L.E.', 8 => 'E.L.E', 9 => 'ELE.', 10 => 'DAD.',
+            11 => 'LIC.', 12 => 'C.', 13 => 'LI.', 14 => 'TR.', 15 => 'L.Q.',
+        ];
+
+        $areasMap = [
+            1 => 'MEDICINA', 2 => 'ENFERMERIA', 3 => 'MEDICO INTERNO DE PREGRADO',
+            4 => 'ENFERMERO PASANTE DE SERVICIO SOCIAL', 5 => 'ADMINISTRATIVA', 6 => 'INFORMATICA'
+        ];
+
+        foreach ($items as $item) {
+            $assistant = \App\Models\TeachingAssistant::firstOrCreate(
+                ['nombre' => $item['nombre']],
+                [
+                    'correo' => $item['correo'],
+                    'ei' => $item['ei'],
+                    'ef' => $item['ef'],
+                    'profesion' => $profesionesMap[$item['profesion']] ?? (string)$item['profesion'],
+                    'area' => $areasMap[$item['area']] ?? (string)$item['area'],
+                    'adscripcion' => $item['adscripcion'],
+                ]
+            );
+
+            \App\Models\TeachingEvent::create([
+                'teaching_assistant_id' => $assistant->id,
+                'nombre_evento' => $item['nombre_evento'],
+                'tema' => $item['tema'],
+                'fecha' => $item['fecha'],
+                'horas' => $item['horas'],
+                'foja' => $item['foja'],
+                'modalidad_id' => $item['modalidad_id'],
+                'participacion_id' => $item['participacion_id'],
+            ]);
         }
     }
 }

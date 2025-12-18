@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
 use App\Mail\VerificationCodeMail;
+use App\Mail\EmailChangeCodeMail;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Cache;
@@ -213,6 +214,7 @@ class AuthController extends Controller
                 'gender' => optional($user->gender)->name,
                 'roles' => $user->getRoleNames(),
                 'permissions' => $permissions,
+                'doctor_id' => $user->doctor_id, // Incluir ID de doctor vinculado
             ],
             'is_profile_complete' => $user->isProfileComplete(),
         ];
@@ -331,6 +333,72 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Contraseña actualizada correctamente.'
+        ]);
+    }
+
+    /**
+     * Request an email change. Sends code to CURRENT email.
+     */
+    public function requestEmailChange(Request $request)
+    {
+        $request->validate([
+            'new_email' => 'required|email|unique:users,email'
+        ], [
+            'new_email.required' => 'El nuevo correo es requerido.',
+            'new_email.email' => 'Formato de correo inválido.',
+            'new_email.unique' => 'El correo ya está en uso por otro usuario.'
+        ]);
+
+        $user = auth('api')->user();
+
+        // Generate code
+        $code = strtoupper(Str::random(8));
+        
+        $user->email_change_code = $code;
+        $user->email_change_expires_at = now()->addMinutes(5);
+        $user->new_email_request = $request->new_email;
+        $user->save();
+
+        // Send to CURRENT email
+        Mail::to($user->email)->send(new EmailChangeCodeMail($user));
+
+        return response()->json([
+            'message' => 'Código de verificación enviado a tu correo actual.'
+        ]);
+    }
+
+    /**
+     * Confirm email change with code.
+     */
+    public function confirmEmailChange(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:8'
+        ], [
+            'code.required' => 'El código es requerido.',
+            'code.size' => 'El código debe tener 8 caracteres.'
+        ]);
+
+        $user = auth('api')->user();
+
+        if (!$user->email_change_code || 
+            $user->email_change_code !== strtoupper($request->code) || 
+            now()->greaterThan($user->email_change_expires_at)) 
+        {
+            return response()->json([
+                'message' => 'Código incorrecto o expirado.'
+            ], 400);
+        }
+
+        // Apply change
+        $user->email = $user->new_email_request;
+        $user->email_change_code = null;
+        $user->email_change_expires_at = null;
+        $user->new_email_request = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Correo electrónico actualizado correctamente.'
         ]);
     }
 

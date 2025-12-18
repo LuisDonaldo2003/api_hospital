@@ -43,6 +43,9 @@ class User extends Authenticatable implements JWTSubject
         'recovery_code_expires_at',
         'session_id',
         'session_created_at',
+        'email_change_code',
+        'email_change_expires_at',
+        'new_email_request',
     ];
 
     protected $hidden = [
@@ -56,7 +59,19 @@ class User extends Authenticatable implements JWTSubject
         'settings' => 'array',
     ];
 
+    protected $appends = ['doctor_id'];
+
     // Relaciones
+    public function doctor()
+    {
+        return $this->hasOne(Doctor::class);
+    }
+
+    public function getDoctorIdAttribute()
+    {
+        return $this->doctor ? $this->doctor->id : null;
+    }
+
     public function departament()
     {
         return $this->belongsTo(Departaments::class, 'departament_id');
@@ -84,6 +99,30 @@ class User extends Authenticatable implements JWTSubject
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    /**
+     * Relación: Muchos a muchos con servicios de citas
+     */
+    public function appointmentServices()
+    {
+        return $this->belongsToMany(AppointmentService::class, 'user_appointment_services');
+    }
+
+    /**
+     * Helper: Verifica si el usuario tiene acceso a un servicio específico
+     */
+    public function hasAccessToService($serviceId): bool
+    {
+        return $this->appointmentServices()->where('appointment_service_id', $serviceId)->exists();
+    }
+
+    /**
+     * Helper: Obtiene los IDs de servicios accesibles por el usuario
+     */
+    public function getAccessibleServiceIds(): array
+    {
+        return $this->appointmentServices()->pluck('appointment_service_id')->toArray();
     }
 
     // JWT

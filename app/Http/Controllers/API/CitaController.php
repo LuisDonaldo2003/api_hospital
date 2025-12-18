@@ -17,33 +17,28 @@ class CitaController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Cita::with(['doctorRelation.especialidad', 'pacienteRelation.person']);
+        $query = Cita::with(['doctorRelation.especialidad', 'doctorRelation.appointmentService', 'pacienteRelation.person']);
         $user = auth()->user();
 
         // -------------------------------------------------------------
-        // FILTRADO ROBUSTO POR ROL/PERMISOS
+        // FILTRADO POR SERVICIOS ACCESIBLES (Nuevo Sistema)
         // -------------------------------------------------------------
-        // Si tiene uno pero NO el otro, filtramos estrictamente.
-        // Si tiene ambos o es superadmin (tiene todos), no se aplica filtro extra aquí.
+        $serviceIds = $user->getAccessibleServiceIds();
         
-        $canSpecialist = $user->can('schedule_specialist_appointment');
-        $canGeneral = $user->can('schedule_general_appointment');
+        // Si el usuario tiene servicios asignados, filtrar solo citas de esos servicios
+        if (!empty($serviceIds)) {
+            $query->where(function($q) use ($serviceIds, $user) {
+                $q->whereHas('doctorRelation', function($q2) use ($serviceIds) {
+                    $q2->whereIn('appointment_service_id', $serviceIds);
+                });
 
-        // Caso: Solo puede ver Especialistas
-        if ($canSpecialist && !$canGeneral) {
-            $query->whereHas('doctorRelation', function($q) {
-                $q->whereNotNull('especialidad_id');
+                // Permitir ver sus propias citas si es doctor
+                if ($user->doctor_id) {
+                    $q->orWhere('doctor_id', $user->doctor_id);
+                }
             });
         }
-        // Caso: Solo puede ver Generales
-        elseif ($canGeneral && !$canSpecialist) {
-            $query->whereHas('doctorRelation', function($q) {
-                $q->whereNotNull('general_medical_id');
-            });
-        }
-        // Si no tiene ninguno de los dos permisos específicos (pero entró aquí por otros permisos), 
-        // y NO es admin/director, podríamos bloquear, pero asumiremos que si tiene 'list_appointment' ve todo 
-        // salvo que tenga la restricción específica de arriba.
+        // Si no tiene servicios asignados, asumimos acceso total (Super Admin)
 
         // Filtro por búsqueda
         if ($search = $request->get('search')) {

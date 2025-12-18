@@ -16,36 +16,42 @@ class DoctorController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Doctor::with(['especialidad', 'generalMedical']);
+        $query = Doctor::with(['especialidad', 'generalMedical', 'appointmentService']);
         $user = auth()->user();
 
         // -------------------------------------------------------------
-        // FILTRADO ROBUSTO POR ROL/PERMISOS
+        // FILTRADO POR SERVICIOS ACCESIBLES (Nuevo Sistema)
         // -------------------------------------------------------------
-        $canSpecialist = $user->can('schedule_specialist_appointment');
-        $canGeneral = $user->can('schedule_general_appointment');
-
-        // Caso: Solo puede ver Especialistas
-        if ($canSpecialist && !$canGeneral) {
-            $query->whereNotNull('especialidad_id');
+        $serviceIds = $user->getAccessibleServiceIds();
+        
+        // Si el usuario tiene servicios asignados, filtrar solo esos
+        if (!empty($serviceIds)) {
+            $query->where(function($q) use ($serviceIds, $user) {
+                $q->whereIn('appointment_service_id', $serviceIds);
+                // Permitir siempre ver su propio perfil de doctor
+                if ($user->doctor_id) {
+                    $q->orWhere('id', $user->doctor_id);
+                }
+            });
         }
-        // Caso: Solo puede ver Generales
-        elseif ($canGeneral && !$canSpecialist) {
-            $query->whereNotNull('general_medical_id');
-        }
-        // Si no, ve todos (Admin, Director, o con ambos permisos)
+        // Si no tiene servicios asignados, asumimos que tiene acceso total (Super Admin)
 
         // Filtro por búsqueda
         if ($search = $request->get('search')) {
             $query->where('nombre_completo', 'like', "%{$search}%");
         }
 
-        // Filtro por especialidad
+        // Filtro por servicio (Nuevo)
+        if ($serviceId = $request->get('appointment_service_id')) {
+            $query->where('appointment_service_id', $serviceId);
+        }
+
+        // DEPRECATED: Filtro por especialidad (mantener para compatibilidad)
         if ($especialidad = $request->get('especialidad_id')) {
             $query->where('especialidad_id', $especialidad);
         }
 
-        // Filtro por médico general
+        // DEPRECATED: Filtro por médico general (mantener para compatibilidad)
         if ($generalMedical = $request->get('general_medical_id')) {
             $query->where('general_medical_id', $generalMedical);
         }
@@ -79,7 +85,7 @@ class DoctorController extends Controller
      */
     public function show($id)
     {
-        $doctor = Doctor::with(['especialidad', 'generalMedical'])->find($id);
+        $doctor = Doctor::with(['especialidad', 'generalMedical', 'appointmentService'])->find($id);
         
         if (!$doctor) {
             return response()->json([
@@ -106,8 +112,9 @@ class DoctorController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre_completo' => 'required|string|max:255',
-            'especialidad_id' => 'nullable|required_without:general_medical_id|exists:especialidades,id',
-            'general_medical_id' => 'nullable|required_without:especialidad_id|exists:general_medicals,id',
+            'appointment_service_id' => 'required|exists:appointment_services,id', // Nuevo campo principal
+            'especialidad_id' => 'nullable|exists:especialidades,id', // DEPRECATED
+            'general_medical_id' => 'nullable|exists:general_medicals,id', // DEPRECATED
             'turno' => 'required|in:Matutino,Vespertino,Mixto',
             'hora_inicio_matutino' => 'nullable|date_format:H:i',
             'hora_fin_matutino' => 'nullable|date_format:H:i',
@@ -134,7 +141,7 @@ class DoctorController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $doctor->load(['especialidad', 'generalMedical']),
+            'data' => $doctor->load(['especialidad', 'generalMedical', 'appointmentService']),
             'message' => 'Doctor creado exitosamente'
         ], 201);
     }
@@ -155,8 +162,9 @@ class DoctorController extends Controller
 
         $validator = Validator::make($request->all(), [
             'nombre_completo' => 'required|string|max:255',
-            'especialidad_id' => 'nullable|required_without:general_medical_id|exists:especialidades,id',
-            'general_medical_id' => 'nullable|required_without:especialidad_id|exists:general_medicals,id',
+            'appointment_service_id' => 'required|exists:appointment_services,id', // Nuevo campo principal
+            'especialidad_id' => 'nullable|exists:especialidades,id', // DEPRECATED
+            'general_medical_id' => 'nullable|exists:general_medicals,id', // DEPRECATED
             'turno' => 'required|in:Matutino,Vespertino,Mixto',
             'hora_inicio_matutino' => 'nullable|date_format:H:i',
             'hora_fin_matutino' => 'nullable|date_format:H:i',
@@ -190,7 +198,7 @@ class DoctorController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $doctor->load(['especialidad', 'generalMedical']),
+            'data' => $doctor->load(['especialidad', 'generalMedical', 'appointmentService']),
             'message' => 'Doctor actualizado exitosamente'
         ]);
     }

@@ -231,7 +231,7 @@ class ArchiveController extends Controller
         $proposedNumber = (int) $request->archive_number;
         $exists = \DB::table('archive')
             ->whereRaw('CAST(archive_number AS INTEGER) = ?', [$proposedNumber])
-            ->where('id', '!=', $id) // Excluir el propio registro
+            ->where('archive_number', '!=', $id) // Excluir el propio registro
             ->exists();
 
         if ($exists) {
@@ -568,36 +568,6 @@ class ArchiveController extends Controller
             'archive_number.integer' => 'El número de expediente debe ser un número entero.'
         ]);
 
-        // --- VALIDACIÓN DE SECUENCIA ESTRICTA ---
-        $proposedNumber = (int) $request->archive_number;
-
-        // 0. Pre-check de Duplicado (Explicit Cast)
-        // Aunque validate() arriba tiene unique, a veces falla por tipos de dato en Postgres.
-        $exists = \DB::table('archive')
-            ->whereRaw('CAST(archive_number AS INTEGER) = ?', [$proposedNumber])
-            ->exists();
-            
-        if ($exists) {
-             return response()->json([
-                'message' => 'El número de expediente ' . $proposedNumber . ' ya está en uso.',
-                'errors' => [
-                    'archive_number' => ['El número de expediente ya existe.']
-                ]
-            ], 422);
-        }
-
-        // Calcular el ÚNICO número permitido por la secuencia
-        $nextAllowed = $this->getNextArchiveNumber();
-
-        // Validar estrictamente
-        if ($proposedNumber !== $nextAllowed) {
-             return response()->json([
-                'message' => 'El número de expediente ' . $proposedNumber . ' es incorrecto. Debe seguir la secuencia estricta.',
-                'errors' => [
-                    'archive_number' => ['El único número permitido por la configuración y secuencia actual es ' . $nextAllowed . '.']
-                ]
-            ], 422);
-        }
         // -------------------------------
 
         $archive = Archive::create($request->all());
@@ -648,16 +618,6 @@ class ArchiveController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'El número de expediente ya está en uso por otro paciente.'
-            ]);
-        }
-
-        // 2. Verificar secuencia Estricta
-        $nextAllowed = $this->getNextArchiveNumber();
-
-        if ($incomingNumber !== $nextAllowed) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No es posible registrar este expediente. El sistema exige seguir la secuencia estrictamente. El único número disponible es ' . $nextAllowed . '.'
             ]);
         }
 

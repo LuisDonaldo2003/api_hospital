@@ -49,6 +49,7 @@ class UserResource extends JsonResource
 
             'online'                => $this->isOnline(),
             "settings"              => $this->settings,
+            "doctor_id"             => $this->doctor_id,
         ];
     }
 }

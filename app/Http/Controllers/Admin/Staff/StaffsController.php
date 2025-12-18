@@ -351,7 +351,7 @@ class StaffsController extends Controller
 
         $request->validate([
             // Solo estos cinco son obligatorios según la UI
-            'avatar' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'mobile' => 'required|string|max:15',
             'birth_date' => 'required|date',
             'gender_id' => 'required|integer|exists:genders,id',

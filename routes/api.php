@@ -70,6 +70,8 @@ Route::group([
     Route::post('/reg', [AuthController::class, 'reg']);
     Route::post('/heartbeat', [AuthController::class, 'heartbeat'])->name('heartbeat');
     Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
+    Route::post('/request-email-change', [AuthController::class, 'requestEmailChange']);
+    Route::post('/confirm-email-change', [AuthController::class, 'confirmEmailChange']);
 });
 
 // Verificación de cuenta
@@ -102,15 +104,13 @@ Route::group([
     'middleware' => ['auth:api', 'check.license'],
 ], function () {
 
+    // Lista de usuarios para componentes de asignación
+    Route::get('/users', [StaffsController::class, 'index']);
+
     // Estadísticas Dashboard Archivo
     Route::get('archives/stats', [ArchiveController::class, 'stats']);
     // endpoint para obtener el siguiente número disponible
     Route::get('archives/next-number', [ArchiveController::class, 'nextNumber']);
-
-    // NUEVOS ENDPOINTS
-    // Configuration Routes
-    Route::get('config/archive', [App\Http\Controllers\Admin\ConfigurationController::class, 'getArchiveConfig']);
-    Route::post('config/archive', [App\Http\Controllers\Admin\ConfigurationController::class, 'updateArchiveConfig']);
 
     Route::get('archives/check-unique', [ArchiveController::class, 'checkUnique']); // Validación en tiempo real
     Route::get('genders', [ArchiveController::class, 'genders']);
@@ -219,6 +219,24 @@ Route::group([
         Route::post('/', [TeachingController::class, 'store']);
         Route::put('/{id}', [TeachingController::class, 'update']);
         Route::delete('/{id}', [TeachingController::class, 'destroy']);
+        Route::post('/{id}/events', [TeachingController::class, 'storeEvent']);
+    Route::delete('/events/{id}', [TeachingController::class, 'destroyEvent']);
+    });
+
+    // Servicios de Citas (Appointment Services)
+    Route::prefix('appointment-services')->group(function () {
+        Route::get('/', [App\Http\Controllers\API\AppointmentServiceController::class, 'index']);
+        Route::get('/accessible', [App\Http\Controllers\API\AppointmentServiceController::class, 'accessible']);
+        Route::get('/{id}', [App\Http\Controllers\API\AppointmentServiceController::class, 'show']);
+        Route::post('/', [App\Http\Controllers\API\AppointmentServiceController::class, 'store']);
+        Route::put('/{id}', [App\Http\Controllers\API\AppointmentServiceController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\API\AppointmentServiceController::class, 'destroy']);
+    });
+
+    // Asignación de servicios a usuarios
+    Route::prefix('users')->group(function () {
+        Route::get('/{userId}/services', [App\Http\Controllers\API\AppointmentServiceController::class, 'userServices']);
+        Route::post('/{userId}/assign-services', [App\Http\Controllers\API\AppointmentServiceController::class, 'assignServices']);
     });
 
     // Rutas para Módulo de Citas Médicas (appointments)

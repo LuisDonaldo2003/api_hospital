@@ -77,9 +77,6 @@ class PermissionsDemoSeeder extends Seeder
         // Doctores
         Permission::create(['guard_name' => 'api','name' => 'register_doctor']);
         Permission::create(['guard_name' => 'api','name' => 'list_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'profile_doctor']);
 
         // Pacientes
         Permission::create(['guard_name' => 'api','name' => 'register_patient']);
@@ -97,23 +94,14 @@ class PermissionsDemoSeeder extends Seeder
         Permission::create(['guard_name' => 'api','name' => 'add_appointment']);
         Permission::create(['guard_name' => 'api','name' => 'list_appointments']);
         Permission::create(['guard_name' => 'api','name' => 'access_appointments_calendar']);
-
-        // Especialidades (appointments)
-        Permission::create(['guard_name' => 'api','name' => 'appointments_add_especialidad']);
-        Permission::create(['guard_name' => 'api','name' => 'appointments_especialidades_list']);
-        Permission::create(['guard_name' => 'api','name' => 'appointments_edit_especialidad']);
-        Permission::create(['guard_name' => 'api','name' => 'appointments_delete_especialidad']);
-
-        // General Medical (appointments)
-        Permission::create(['guard_name' => 'api','name' => 'appointments_add_general_medical']);
-        Permission::create(['guard_name' => 'api','name' => 'appointments_list_general_medical']);
-        Permission::create(['guard_name' => 'api','name' => 'appointments_edit_general_medical']);
-        Permission::create(['guard_name' => 'api','name' => 'appointments_delete_general_medical']);
+        Permission::create(['guard_name' => 'api','name' => 'manage_appointment_services']);
 
         // Gestión de Doctores (appointments) - usando nombres únicos
         Permission::create(['guard_name' => 'api','name' => 'add_doctor']);
         Permission::create(['guard_name' => 'api','name' => 'list_doctors']);
-
+        Permission::create(['guard_name' => 'api','name' => 'edit_doctor']);
+        Permission::create(['guard_name' => 'api','name' => 'delete_doctor']);
+        
         // Pagos
         Permission::create(['guard_name' => 'api','name' => 'show_payment']);
         Permission::create(['guard_name' => 'api','name' => 'edit_payment']);
@@ -173,7 +161,7 @@ class PermissionsDemoSeeder extends Seeder
 
         $userSuper = User::factory()->create([
             'name' => 'Dr. Eric Aburto Álvarez',
-            'email' => 'director@gmail.com',
+            'email' => 'erabu_25@hotmail.com',
             'password' => bcrypt('12345678')
         ]);
         $userSuper->assignRole($roleSuperAdmin);
@@ -389,9 +377,9 @@ class PermissionsDemoSeeder extends Seeder
         $roleEnseñanza->syncPermissions($EnseñanzaPermissions);
 
         $userEnseñanza = User::updateOrCreate(
-            ['email' => 'ensenanza@gmail.com'],
+            ['email' => 'karenang2988@hotmail.com'],
             [
-                'name' => 'Enseñanza User',
+                'name' => 'Karen Amairany Nuñez Gomez',
                 'password' => Hash::make('12345678'),
                 'email_verified_at' => now(),
             ]
@@ -399,8 +387,8 @@ class PermissionsDemoSeeder extends Seeder
         $userEnseñanza->assignRole($roleEnseñanza);
 
         // Enfermera (Citas- Especialidades)
-        $roleEnfermera = Role::create(['guard_name' => 'api','name' => 'Enfermera (Citas Especialidades)']);
-        $enfermeraPermissionsEspecialidades = [
+        $roleEnfermera = Role::create(['guard_name' => 'api','name' => 'Enfermera']);
+        $enfermeraPermissions= [
             // Citas
             'add_appointment',
             'list_appointments',
@@ -413,55 +401,50 @@ class PermissionsDemoSeeder extends Seeder
             'add_doctor',
             'edit_doctor',
             'delete_doctor',
-            // Especialidades
-            'appointments_especialidades_list',
-            'appointments_add_especialidad',
-            'appointments_edit_especialidad',
-            'appointments_delete_especialidad',
         ];
-        $roleEnfermera->syncPermissions($enfermeraPermissionsEspecialidades);
+        $roleEnfermera->syncPermissions($enfermeraPermissions);
 
         $userEnfermeraEsp = User::updateOrCreate(
-            ['email' => 'enfermera.especialidades@gmail.com'],
+            ['email' => 'enfermera1@gmail.com'],
             [
-                'name' => 'Enfermera Especialidades',
+                'name' => 'Enfermera 1',
                 'password' => Hash::make('12345678'),
                 'email_verified_at' => now(),
             ]
         );
         $userEnfermeraEsp->assignRole($roleEnfermera);
 
-        // 2. Enfermera (Citas Generales)
-        $roleEnfermeraGen = Role::create(['guard_name' => 'api','name' => 'Enfermera (Citas Generales)']);
-        $enfermeraPermissionsGenerales = [
-            // Citas
+        $userEnfermeraGen = User::updateOrCreate(
+            ['email' => 'enfermera2@gmail.com'],
+            [
+                'name' => 'Enfermera 2',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $userEnfermeraGen->assignRole($roleEnfermera);
+
+
+        $roleNutricion = Role::create(['guard_name' => 'api','name' => 'Nutrición']);
+        $nutricionPermissions = [
             'add_appointment',
             'list_appointments',
             'edit_appointment',
             'delete_appointment',
             'attention_appointment',
             'access_appointments_calendar',
-            // Doctores (solo consulta)
-            'list_doctors',
-            'add_doctor',
-            'edit_doctor',
-            'delete_doctor',
-            // Generales
-            'appointments_list_general_medical',
-            'appointments_add_general_medical',
-            'appointments_edit_general_medical',
-            'appointments_delete_general_medical',
         ];
-        $roleEnfermeraGen->syncPermissions($enfermeraPermissionsGenerales);
+        $roleNutricion->syncPermissions($nutricionPermissions);
 
-        $userEnfermeraGen = User::updateOrCreate(
-            ['email' => 'enfermera.generales@gmail.com'],
+        $userNutricion = User::updateOrCreate(
+            ['email' => 'nutricion@gmail.com'],
             [
-                'name' => 'Enfermera Generales',
+                'name' => 'Nutrición User',
                 'password' => Hash::make('12345678'),
                 'email_verified_at' => now(),
             ]
         );
-        $userEnfermeraGen->assignRole($roleEnfermeraGen);
+        $userNutricion->assignRole($roleNutricion);
     }
+    
 }

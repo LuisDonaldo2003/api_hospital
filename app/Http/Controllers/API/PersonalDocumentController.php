@@ -8,122 +8,80 @@ use App\Models\PersonalDocument;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use App\Services\ActivityLoggerService;
+use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLoggerService; // Assuming this service exists given usage in PersonalController
 
 class PersonalDocumentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request): JsonResponse
-    {
-        try {
-            $personalId = $request->route('personal_id');
-            
-            if ($personalId) {
-                // Documentos de una persona específica
-                $personal = Personal::findOrFail($personalId);
-                $documentos = $personal->documentos()->get();
-            } else {
-                // Todos los documentos
-                $documentos = PersonalDocument::with('personal')->get();
-            }
-
-            // Log the list action
-            ActivityLoggerService::logRead('PersonalDocument', null, 'medical-documents', [
-                'personal_id' => $personalId,
-                'total_results' => $documentos->count()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data' => $documentos,
-                'message' => 'Documentos obtenidos exitosamente'
-            ]);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Personal no encontrado'
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener documentos: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
+            // Validación básica
+            $request->validate([
                 'personal_id' => 'required|exists:personals,id',
-                'tipo_documento' => 'required|in:Acta de nacimiento,Comprobante de domicilio,CURP,INE,RFC,Título profesional',
-                'archivo' => 'required|file|mimes:pdf|max:10240' // Max 10MB
-            ], [
-                'personal_id.required' => 'El ID del personal es requerido',
-                'personal_id.exists' => 'El personal especificado no existe',
-                'tipo_documento.required' => 'El tipo de documento es requerido',
-                'tipo_documento.in' => 'Tipo de documento inválido',
-                'archivo.required' => 'El archivo es requerido',
-                'archivo.mimes' => 'El archivo debe ser un PDF',
-                'archivo.max' => 'El archivo no puede ser mayor a 10MB'
+                'tipo_documento' => 'required|string',
+                'archivo' => 'required|file|mimes:pdf|max:500' // Max 500KB
             ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Errores de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $personalId = $request->personal_id;
+            $tipoDocumento = $request->tipo_documento;
+            $file = $request->file('archivo');
 
-            $personal = Personal::findOrFail($request->personal_id);
-
-            // Verificar si ya existe un documento de este tipo para esta persona
-            $existeDocumento = PersonalDocument::where('personal_id', $request->personal_id)
-                                             ->where('tipo_documento', $request->tipo_documento)
-                                             ->first();
-
-            if ($existeDocumento) {
-                // Eliminar el archivo anterior
-                if (Storage::exists($existeDocumento->ruta_archivo)) {
-                    Storage::delete($existeDocumento->ruta_archivo);
+            // Lógica de reemplazo:
+            // Si NO es "Constancias de cursos", eliminamos el anterior de ese tipo si existe.
+            if ($tipoDocumento !== 'Constancias de cursos') {
+                $existingDoc = PersonalDocument::where('personal_id', $personalId)
+                                               ->where('tipo_documento', $tipoDocumento)
+                                               ->first();
+                if ($existingDoc) {
+                    // Eliminar archivo físico
+                    if (Storage::disk('public')->exists($existingDoc->ruta_archivo)) {
+                        Storage::disk('public')->delete($existingDoc->ruta_archivo);
+                    }
+                    // Eliminar registro
+                    $existingDoc->delete();
                 }
-                $existeDocumento->delete();
             }
 
-            $archivo = $request->file('archivo');
-            $nombreArchivo = $this->generateFileName($personal, $request->tipo_documento, $archivo);
-            $rutaArchivo = $archivo->storeAs('documentos/personal/' . $personal->id, $nombreArchivo, 'public');
+            // Generar nombre y ruta
+            // Limpiamos el nombre original de caracteres extraños
+            $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $cleanName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $originalName);
+            $fileName = time() . '_' . $cleanName . '.pdf';
+            
+            // Estructura: documentos/personal/{id}/{tipo}/filename
+            // Normalizar tipo para carpeta
+            $folderType = \Str::slug($tipoDocumento);
+            $path = "documentos/personal/{$personalId}/{$folderType}";
+            
+            // Guardar archivo
+            $filePath = $file->storeAs($path, $fileName, 'public');
 
-            $documento = PersonalDocument::create([
-                'personal_id' => $request->personal_id,
-                'tipo_documento' => $request->tipo_documento,
-                'nombre_archivo' => $nombreArchivo,
-                'ruta_archivo' => $rutaArchivo,
-                'tipo_mime' => $archivo->getMimeType(),
-                'tamaño_archivo' => $archivo->getSize(),
+            // Crear registro
+            $document = PersonalDocument::create([
+                'personal_id' => $personalId,
+                'tipo_documento' => $tipoDocumento,
+                'nombre_archivo' => $file->getClientOriginalName(), // Guardamos nombre original para display
+                'ruta_archivo' => $filePath,
+                'tipo_mime' => $file->getClientMimeType(),
+                'tamaño_archivo' => $file->getSize(), // El modelo tiene 'tamaño_archivo', lo mantenemos en DB pero exponemos diferente
                 'fecha_subida' => now()
             ]);
 
+            // Transformar respuesta para evitar ñ
+            $responseDoc = $document->toArray();
+            $responseDoc['file_size'] = $document->tamaño_archivo; // Alias seguro
+            // unset($responseDoc['tamaño_archivo']); // Opcional, pero mejor dejarlo por si acaso
+
             return response()->json([
                 'success' => true,
-                'data' => $documento->load('personal'),
-                'message' => 'Documento subido exitosamente'
+                'data' => $responseDoc,
+                'message' => 'Documento subido correctamente'
             ], 201);
 
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Personal no encontrado'
-            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -133,28 +91,29 @@ class PersonalDocumentController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Display a listing of documents for a specific person.
      */
-    public function show(string $id): JsonResponse
+    public function index($personalId): JsonResponse
     {
         try {
-            $documento = PersonalDocument::with('personal')->findOrFail($id);
+            $documents = PersonalDocument::where('personal_id', $personalId)->get();
+
+            // Transformar colección para alias seguro
+            $documents = $documents->map(function ($doc) {
+                $d = $doc->toArray();
+                $d['file_size'] = $doc->tamaño_archivo;
+                return $d;
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $documento,
-                'message' => 'Documento obtenido exitosamente'
+                'data' => $documents,
+                'message' => 'Documentos obtenidos correctamente'
             ]);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Documento no encontrado'
-            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener documento: ' . $e->getMessage()
+                'message' => 'Error al obtener documentos'
             ], 500);
         }
     }
@@ -162,138 +121,68 @@ class PersonalDocumentController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy($id): JsonResponse
     {
         try {
-            $documento = PersonalDocument::findOrFail($id);
-            $documento->delete(); // El archivo se elimina automáticamente por el evento boot()
+            $document = PersonalDocument::findOrFail($id);
+            
+            // Eliminar archivo físico
+            if (Storage::disk('public')->exists($document->ruta_archivo)) {
+                Storage::disk('public')->delete($document->ruta_archivo);
+            }
+            
+            $document->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Documento eliminado exitosamente'
+                'message' => 'Documento eliminado correctamente'
             ]);
 
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Documento no encontrado'
-            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar documento: ' . $e->getMessage()
+                'message' => 'Error al eliminar documento'
             ], 500);
         }
     }
 
     /**
-     * Descargar un documento
+     * Download the specified resource.
      */
-    public function download(string $id)
+    public function download($id)
     {
         try {
-            $documento = PersonalDocument::findOrFail($id);
+            $document = PersonalDocument::findOrFail($id);
             
-            if (!Storage::exists($documento->ruta_archivo)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Archivo no encontrado en el sistema'
-                ], 404);
+            if (Storage::disk('public')->exists($document->ruta_archivo)) {
+                return Storage::disk('public')->download($document->ruta_archivo, $document->nombre_archivo);
             }
+            
+            return response()->json(['message' => 'Archivo no encontrado en el servidor'], 404);
 
-            return Storage::download($documento->ruta_archivo, $documento->nombre_archivo);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Documento no encontrado'
-            ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al descargar documento: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Error al descargar archivo'], 500);
         }
     }
 
     /**
-     * Obtener tipos de documentos requeridos
+     * Obtener tipos de documentos requeridos (Helper endpoint)
      */
-    public function tiposDocumentos(): JsonResponse
+    public function getTipos(): JsonResponse
     {
         $tipos = [
             'Acta de nacimiento',
             'Comprobante de domicilio',
             'CURP',
             'INE',
-            'RFC',
-            'Título profesional'
+            'Título profesional',
+            'Constancias de cursos',
+            'Cédula profesional'
         ];
-
+        
         return response()->json([
             'success' => true,
-            'data' => $tipos,
-            'message' => 'Tipos de documentos obtenidos exitosamente'
+            'data' => $tipos
         ]);
-    }
-
-    /**
-     * Generar nombre único para el archivo
-     */
-    private function generateFileName(Personal $personal, string $tipoDocumento, $archivo): string
-    {
-        $extension = $archivo->getClientOriginalExtension();
-        $nombreLimpio = preg_replace('/[^A-Za-z0-9\-]/', '_', $personal->nombre . '_' . $personal->apellidos);
-        $tipoLimpio = preg_replace('/[^A-Za-z0-9\-]/', '_', $tipoDocumento);
-        
-        return $nombreLimpio . '_' . $tipoLimpio . '_' . time() . '.' . $extension;
-    }
-
-    /**
-     * Verificar el estado de documentos de una persona
-     */
-    public function estadoDocumentos(string $personalId): JsonResponse
-    {
-        try {
-            $personal = Personal::findOrFail($personalId);
-            $documentosSubidos = $personal->documentos()->pluck('tipo_documento')->toArray();
-            
-            $tiposRequeridos = [
-                'Acta de nacimiento',
-                'Comprobante de domicilio', 
-                'CURP',
-                'INE',
-                'RFC',
-                'Título profesional'
-            ];
-
-            $estado = [];
-            foreach ($tiposRequeridos as $tipo) {
-                $estado[$tipo] = in_array($tipo, $documentosSubidos);
-            }
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'personal' => $personal,
-                    'documentos_estado' => $estado,
-                    'completo' => $personal->documentos_completos,
-                    'total_requeridos' => count($tiposRequeridos),
-                    'total_subidos' => count($documentosSubidos)
-                ],
-                'message' => 'Estado de documentos obtenido exitosamente'
-            ]);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Personal no encontrado'
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener estado de documentos: ' . $e->getMessage()
-            ], 500);
-        }
     }
 }

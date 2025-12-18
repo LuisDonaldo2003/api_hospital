@@ -53,14 +53,15 @@ class PersonalController extends Controller
             }
 
             // Cargar datos con conteo de documentos en una sola consulta
+            // Ahora obtenemos el personal y contamos sus documentos
             $personal = $query->withCount('documentos')
                              ->orderBy('apellidos')
                              ->orderBy('nombre')
                              ->get();
 
-            // Agregar el campo documentos_completos basado en el conteo (ahora son 7 documentos)
+            // Agregar el campo documentos_completos basado en el conteo (ahora son 7 tipos de documentos)
             $personal->each(function ($item) {
-                $item->documentos_completos = $item->documentos_count >= 7;
+                $item->documentos_completos = $item->documentos_count >= 7; 
             });
 
             // Log the list action
@@ -106,7 +107,7 @@ class PersonalController extends Controller
                 'tipo.in' => 'El tipo debe ser Clínico o No Clínico',
                 'rfc.required' => 'El RFC es requerido',
                 'rfc.size' => 'El RFC debe tener exactamente 13 caracteres',
-                'rfc.regex' => 'El formato del RFC no es válido (4 letras + 6 dígitos + 3 caracteres)',
+                'rfc.regex' => 'El formato del RFC no es válido (solo mayúsculas y números)',
                 'rfc.unique' => 'Este RFC ya está registrado por otro empleado',
                 'numero_checador.required' => 'El número de checador es requerido',
                 'numero_checador.regex' => 'El número de checador debe tener entre 1 y 4 dígitos',
@@ -141,7 +142,7 @@ class PersonalController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $personal,
-                'message' => 'Personal creado exitosamente'
+                'message' => 'Personal creado exitosamente. Ahora puede subir los documentos.'
             ], 201);
 
         } catch (\Exception $e) {
@@ -150,120 +151,6 @@ class PersonalController extends Controller
                 'message' => 'Error al crear el personal: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * Store a newly created resource with documents in storage.
-     */
-    public function storeWithDocuments(Request $request): JsonResponse
-    {
-        try {
-            // Validación de datos básicos
-            $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|min:2|max:255',
-                'apellidos' => 'required|string|min:2|max:255',
-                'tipo' => 'required|in:Clínico,No Clínico',
-                'rfc' => 'required|string|max:13|regex:/^[A-Z0-9]+$/|unique:personals,rfc',
-                'numero_checador' => 'required|string|regex:/^[0-9]{1,4}$/|unique:personals,numero_checador',
-                'documentos' => 'nullable|array|max:7',
-                'documentos.*' => 'required|file|mimes:pdf|max:10240'
-            ], [
-                'nombre.required' => 'El nombre es requerido',
-                'nombre.min' => 'El nombre debe tener al menos 2 caracteres',
-                'apellidos.required' => 'Los apellidos son requeridos',
-                'apellidos.min' => 'Los apellidos deben tener al menos 2 caracteres',
-                'tipo.required' => 'El tipo de personal es requerido',
-                'tipo.in' => 'El tipo debe ser Clínico o No Clínico',
-                'rfc.required' => 'El RFC es requerido',
-                'rfc.max' => 'El RFC no puede tener más de 13 caracteres',
-                'rfc.regex' => 'El RFC solo puede contener letras y números',
-                'rfc.unique' => 'Este RFC ya está registrado por otro empleado',
-                'numero_checador.required' => 'El número de checador es requerido',
-                'numero_checador.regex' => 'El número de checador debe tener entre 1 y 4 dígitos',
-                'numero_checador.unique' => 'Este número de checador ya está asignado a otro empleado',
-                'documentos.max' => 'No puede subir más de 7 documentos',
-                'documentos.*.mimes' => 'Todos los documentos deben ser archivos PDF',
-                'documentos.*.max' => 'Cada documento no puede ser mayor a 10MB'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Errores de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Crear el personal
-            $personal = Personal::create([
-                'nombre' => $request->nombre,
-                'apellidos' => $request->apellidos,
-                'tipo' => $request->tipo,
-                'rfc' => strtoupper($request->rfc),
-                'numero_checador' => $request->numero_checador,
-                'fecha_ingreso' => now()->toDateString()
-            ]);
-
-            // Subir y guardar cada documento (si hay)
-            $documentosGuardados = [];
-            if ($request->hasFile('documentos')) {
-                foreach ($request->file('documentos') as $tipoDocumento => $archivo) {
-                    $nombreArchivo = $this->generateFileName($personal, $tipoDocumento, $archivo);
-                    $rutaArchivo = $archivo->storeAs('documentos/personal/' . $personal->id, $nombreArchivo, 'public');
-
-                    $documento = $personal->documentos()->create([
-                        'tipo_documento' => $tipoDocumento,
-                        'nombre_archivo' => $nombreArchivo,
-                        'ruta_archivo' => $rutaArchivo,
-                        'tipo_mime' => $archivo->getMimeType(),
-                        'tamaño_archivo' => $archivo->getSize(),
-                        'fecha_subida' => now()
-                    ]);
-
-                    $documentosGuardados[] = $documento;
-                }
-            }
-
-            // Cargar el personal con sus documentos
-            $personal->load('documentos');
-
-            // Mensaje personalizado según documentos subidos
-            $cantidadDocumentos = count($documentosGuardados);
-            if ($cantidadDocumentos === 7) {
-                $mensaje = 'Personal y todos los documentos creados exitosamente';
-            } elseif ($cantidadDocumentos > 0) {
-                $mensaje = "Personal creado exitosamente con {$cantidadDocumentos}/7 documentos. Será marcado como documentos incompletos.";
-            } else {
-                $mensaje = 'Personal creado exitosamente sin documentos. Será marcado como documentos incompletos.';
-            }
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'personal' => $personal,
-                    'documentos' => $documentosGuardados
-                ],
-                'message' => $mensaje
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear el personal: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Generar nombre único para el archivo
-     */
-    private function generateFileName(Personal $personal, string $tipoDocumento, $archivo): string
-    {
-        $extension = $archivo->getClientOriginalExtension();
-        $nombreLimpio = preg_replace('/[^A-Za-z0-9\-]/', '_', $personal->nombre . '_' . $personal->apellidos);
-        $tipoLimpio = preg_replace('/[^A-Za-z0-9\-]/', '_', $tipoDocumento);
-        
-        return $nombreLimpio . '_' . $tipoLimpio . '_' . time() . '.' . $extension;
     }
 
     /**
@@ -273,7 +160,9 @@ class PersonalController extends Controller
     {
         try {
             $personal = Personal::with('documentos')->findOrFail($id);
-            $personal->documentos_completos = $personal->documentos_completos;
+            // Recalcular completitud real basado en tipos únicos
+            $tiposUnicos = $personal->documentos->pluck('tipo_documento')->unique()->count();
+            $personal->documentos_completos = $tiposUnicos >= 7;
 
             // Log the read activity
             ActivityLoggerService::logRead('Personal', $personal->id, 'medical-personal', [
@@ -446,13 +335,26 @@ class PersonalController extends Controller
     public function estadisticas(): JsonResponse
     {
         try {
+            // Documentos completos es complejo calcular en SQL puro si depende de "Tipos únicos >= 7"
+            // Hacemos una aproximación o iteramos
+            // Para estadisticas generales, podemos hacer un query group by
+            
+            $total = Personal::activo()->count();
+            $clinico = Personal::activo()->tipo('Clínico')->count();
+            $noClinico = Personal::activo()->tipo('No Clínico')->count();
+
+            // Calculo de completos (mas costoso, pero necesario)
+            // Filtramos en memoria los que tienen >= 7 tipos distintos
+            // Ojo: esto puede ser lento si hay miles. Para MVP está bien.
+            $completos = Personal::activo()->with('documentos')->get()->filter(function ($personal) {
+                 return $personal->documentos->pluck('tipo_documento')->unique()->count() >= 7;
+            })->count();
+
             $stats = [
-                'total' => Personal::activo()->count(),
-                'clinico' => Personal::activo()->tipo('Clínico')->count(),
-                'no_clinico' => Personal::activo()->tipo('No Clínico')->count(),
-                'documentos_completos' => Personal::activo()->get()->filter(function ($personal) {
-                    return $personal->documentos_completos;
-                })->count()
+                'total' => $total,
+                'clinico' => $clinico,
+                'no_clinico' => $noClinico,
+                'documentos_completos' => $completos
             ];
 
             return response()->json([

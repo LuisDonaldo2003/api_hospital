@@ -14,8 +14,10 @@ class Doctor extends Model
 
     protected $fillable = [
         'nombre_completo',
-        'especialidad_id',
-        'general_medical_id',
+        'user_id', // Relación con el usuario (login)
+        'appointment_service_id', // Nueva columna
+        'especialidad_id', // Deprecated - mantener temporalmente
+        'general_medical_id', // Deprecated - mantener temporalmente
         'turno',
         'hora_inicio_matutino',
         'hora_fin_matutino',
@@ -28,10 +30,23 @@ class Doctor extends Model
         'activo' => 'boolean',
     ];
 
-    protected $appends = ['especialidad_nombre'];
+    protected $appends = ['service_name']; // Cambiado de especialidad_nombre
 
     /**
-     * Relación con especialidad
+     * Relación con servicio de citas
+     */
+    public function appointmentService()
+    {
+        return $this->belongsTo(AppointmentService::class, 'appointment_service_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * DEPRECATED: Relación con especialidad (mantener para compatibilidad temporal)
      */
     public function especialidad()
     {
@@ -39,7 +54,7 @@ class Doctor extends Model
     }
 
     /**
-     * Relación con médico general (categoría)
+     * DEPRECATED: Relación con médico general (mantener para compatibilidad temporal)
      */
     public function generalMedical()
     {
@@ -55,10 +70,15 @@ class Doctor extends Model
     }
 
     /**
-     * Accessor para nombre de especialidad o médico general
+     * Accessor para nombre del servicio
      */
-    public function getEspecialidadNombreAttribute()
+    public function getServiceNameAttribute()
     {
+        if ($this->appointmentService) {
+            return $this->appointmentService->nombre;
+        }
+
+        // Fallback a sistema antiguo (temporal)
         if ($this->especialidad) {
             return $this->especialidad->nombre;
         }
@@ -67,7 +87,15 @@ class Doctor extends Model
             return $this->generalMedical->nombre;
         }
 
-        return 'Sin especialidad';
+        return 'Sin servicio';
+    }
+
+    /**
+     * DEPRECATED: Accessor antiguo (mantener para compatibilidad)
+     */
+    public function getEspecialidadNombreAttribute()
+    {
+        return $this->service_name;
     }
 
     /**
@@ -79,7 +107,15 @@ class Doctor extends Model
     }
 
     /**
-     * Scope para buscar por especialidad
+     * Scope para buscar por servicio de citas
+     */
+    public function scopeByService($query, $serviceId)
+    {
+        return $query->where('appointment_service_id', $serviceId);
+    }
+
+    /**
+     * DEPRECATED: Scope para buscar por especialidad (mantener temporalmente)
      */
     public function scopeByEspecialidad($query, $especialidadId)
     {
